@@ -29,6 +29,7 @@ import { FavouritesModule }    from '@modules/favourites/favourites.module';
 import { AdminModule }         from '@modules/admin/admin.module';
 import { RedisModule }         from '@modules/redis/redis.module';
 import { EngineersModule }     from '@modules/engineers/engineers.module';
+import { RfqsModule }          from '@modules/rfqs/rfqs.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { EngineersModule }     from '@modules/engineers/engineers.module';
     FavouritesModule,
     AdminModule,
     EngineersModule,
+    RfqsModule,
   ],
   providers: [
     // Global rate-limit guard
