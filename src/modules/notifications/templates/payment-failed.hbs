@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body{margin:0;padding:0;background:#06080d;font-family:Arial,sans-serif;color:#e2e8f0}
+    .wrap{max-width:520px;margin:40px auto;background:#111827;border:1px solid #1e293b;border-radius:12px;overflow:hidden}
+    .header{padding:22px 30px;background:linear-gradient(135deg,#111827,#162032);border-bottom:1px solid #1e293b}
+    .logo{font-size:19px;font-weight:700;color:#f59e0b}
+    .body{padding:30px}
+    h2{font-size:19px;font-weight:700;margin:0 0 10px}
+    p{color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 14px}
+    .alert{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;margin:20px 0}
+    .alert-icon{font-size:28px;flex-shrink:0}
+    .alert-text{font-size:13.5px;color:#fca5a5}
+    .steps{margin:20px 0}
+    .step{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:13.5px;color:#94a3b8}
+    .step-num{background:#1e293b;border:1px solid #253044;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#f59e0b;flex-shrink:0;margin-top:1px}
+    .cta{display:block;background:#f59e0b;color:#000;text-align:center;padding:13px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;margin:20px 0}
+    .footer{padding:16px 30px;border-top:1px solid #1e293b;text-align:center;font-size:12px;color:#475569}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header"><div class="logo">☀️ SolarHub</div></div>
+    <div class="body">
+      <h2>Payment Failed ❌</h2>
+      <p>Hi {{firstName}}, unfortunately your payment could not be completed.</p>
+
+      <div class="alert">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text">
+          <strong style="display:block;margin-bottom:4px">Order {{payment.orderNumber}}</strong>
+          {{payment.failureReason}}
+        </div>
+      </div>
+
+      <p>Don't worry — your order is still reserved for a short time. Here's what to do:</p>
+
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><span>Check your card details and available balance</span></div>
+        <div class="step"><div class="step-num">2</div><span>Try a different card or payment method (bank transfer, USSD)</span></div>
+        <div class="step"><div class="step-num">3</div><span>Contact your bank if the issue persists</span></div>
+      </div>
+
+      <a href="{{payment.retryUrl}}" class="cta">🔄 Retry Payment</a>
+      <p style="font-size:12.5px;text-align:center">Need help? <a href="{{supportUrl}}" style="color:#f59e0b">Chat with support</a></p>
+    </div>
+    <div class="footer">© {{year}} SolarHub Nigeria Ltd. All rights reserved.</div>
+  </div>
+</body>
+</html>

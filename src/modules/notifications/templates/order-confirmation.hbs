@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Order Confirmed</title>
+  <style>
+    body{margin:0;padding:0;background:#06080d;font-family:Arial,sans-serif;color:#e2e8f0}
+    .wrap{max-width:580px;margin:40px auto;background:#111827;border:1px solid #1e293b;border-radius:12px;overflow:hidden}
+    .header{background:linear-gradient(135deg,#111827,#162032);padding:28px 32px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:22px;font-weight:700;color:#f59e0b}
+    .order-no{font-size:13px;color:#94a3b8}
+    .body{padding:32px}
+    h2{font-size:20px;font-weight:700;margin:0 0 8px}
+    p{color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 16px}
+    .status-bar{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+    .status-dot{width:10px;height:10px;background:#10b981;border-radius:50%;flex-shrink:0}
+    .status-txt{font-size:14px;color:#10b981;font-weight:600}
+    .items-table{width:100%;border-collapse:collapse;margin:0 0 20px}
+    .items-table th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#475569;padding:8px 0;border-bottom:1px solid #1e293b;text-align:left}
+    .items-table td{padding:12px 0;border-bottom:1px solid #1e293b;font-size:14px;color:#94a3b8}
+    .items-table td:last-child{text-align:right;color:#f59e0b;font-weight:600}
+    .total-row{display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid #1e293b;margin-top:4px}
+    .total-label{font-size:15px;font-weight:600;color:#e2e8f0}
+    .total-val{font-size:20px;font-weight:700;color:#f59e0b}
+    .delivery-box{background:#162032;border:1px solid #253044;border-radius:8px;padding:16px;margin:20px 0}
+    .dl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#475569;margin-bottom:6px}
+    .dv{font-size:14px;color:#e2e8f0}
+    .cta{display:block;background:#f59e0b;color:#000;text-align:center;padding:14px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;margin:24px 0}
+    .footer{padding:18px 32px;border-top:1px solid #1e293b;text-align:center;font-size:12px;color:#475569}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="logo">☀️ SolarHub</div>
+      <div class="order-no">Order {{order.orderNumber}}</div>
+    </div>
+    <div class="body">
+      <h2>Order Confirmed! 🎉</h2>
+      <p>Hi {{firstName}}, your order has been successfully placed. You'll receive updates as it progresses.</p>
+      <div class="status-bar">
+        <div class="status-dot"></div>
+        <div class="status-txt">Payment received — order processing</div>
+      </div>
+      <table class="items-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead>
+        <tbody>
+          {{#each order.items}}
+          <tr>
+            <td>{{this.name}}</td>
+            <td>{{this.qty}}</td>
+            <td>₦{{this.subtotal}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <div class="total-row">
+        <div class="total-label">Total Paid</div>
+        <div class="total-val">₦{{order.total}}</div>
+      </div>
+      <div class="delivery-box">
+        <div class="dl">Delivery Address</div>
+        <div class="dv">{{order.deliveryAddress}}</div>
+        <div class="dl" style="margin-top:10px">Estimated Delivery</div>
+        <div class="dv" style="color:#10b981">{{order.estimatedDelivery}}</div>
+      </div>
+      <a href="{{order.trackingUrl}}" class="cta">Track My Order</a>
+      <p style="font-size:13px">Need help? Reply to this email or visit our <a href="{{supportUrl}}" style="color:#f59e0b">support centre</a>.</p>
+    </div>
+    <div class="footer">© {{year}} SolarHub Nigeria Ltd. All rights reserved.</div>
+  </div>
+</body>
+</html>
