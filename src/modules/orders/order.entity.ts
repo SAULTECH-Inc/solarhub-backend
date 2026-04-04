@@ -86,6 +86,9 @@ export class Order {
   @Column({ nullable: true, length: 50 })
   paymentGateway: string;
 
+  @Column({ length: 50, default: 'online' })
+  paymentMethod: string;
+
   @Column({ type: 'jsonb', default: [] })
   statusHistory: Array<{
     status: string;

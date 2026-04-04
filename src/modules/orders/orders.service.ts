@@ -18,6 +18,7 @@ interface CreateOrderDto {
   deliveryAddress: Order['deliveryAddress'];
   deliveryMethod: string;
   deliveryFee?: number;
+  paymentMethod?: string;
   buyerNote?: string;
   currency?: string;
 }
@@ -78,6 +79,7 @@ export class OrdersService {
         estimatedDelivery,
         trackingCode: generateTrackingCode(),
         buyerNote: dto.buyerNote,
+        paymentMethod: dto.paymentMethod || 'online',
         statusHistory: [{
           status: OrderStatus.PENDING,
           timestamp: new Date().toISOString(),
