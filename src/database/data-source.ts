@@ -19,6 +19,8 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME     || 'solarhub',
   synchronize: false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  url: process.env.DB_URL, // Optional: override with a full connection string
   logging: true,
   entities:   [path.join(__dirname, '../modules/**/*.entity{.ts,.js}')],
   migrations: [path.join(__dirname, './migrations/*{.ts,.js}')],

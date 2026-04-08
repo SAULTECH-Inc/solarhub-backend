@@ -17,7 +17,7 @@ import { RedisService, REDIS_CLIENT } from './redis.service';
           port:     cfg.get<number>('redis.port'),
           password: cfg.get('redis.password') || undefined,
           lazyConnect: false,
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: 10,
           enableReadyCheck: true,
         });
         client.on('connect',     () => console.log('✅ Redis connected'));
