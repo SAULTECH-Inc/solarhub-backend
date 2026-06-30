@@ -67,6 +67,8 @@ async function getApp() {
         origin: (origin, cb) => {
             if (!origin)
                 return cb(null, true);
+            if (!origins.filter(Boolean).length)
+                return cb(null, true);
             cb(null, origins.includes(origin));
         },
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

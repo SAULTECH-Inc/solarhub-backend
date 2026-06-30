@@ -80,7 +80,8 @@ async function getApp(): Promise<NestExpressApplication> {
 
   app.enableCors({
     origin: (origin: string | undefined, cb: (e: Error | null, ok?: boolean) => void) => {
-      if (!origin) return cb(null, true);
+      if (!origin) return cb(null, true);            // non-browser / server calls
+      if (!origins.filter(Boolean).length) return cb(null, true); // no allow-list configured
       cb(null, origins.includes(origin));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
