@@ -101,8 +101,8 @@ export class UploadsService {
     });
   }
 
-  async deleteImage(publicId: string): Promise<void> {
-    await cloudinary.uploader.destroy(publicId);
+  async deleteFile(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<void> {
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
   }
 
   async extractSpecsFromLabel(file: Express.Multer.File, category: string): Promise<Record<string, any>> {
