@@ -210,12 +210,12 @@ export class ChatGateway
           });
         }
       } else if (room.type === ChatRoomType.AI_SUPPORT || !room.agentId) {
-        // AI response
-        const aiText = await this.chatService.generateAiResponse(
+        // AI response (may include rich tool-result metadata)
+        const { text: aiText, metadata: aiMeta } = await this.chatService.generateAiResponse(
           room.id, data.content, userId,
         );
         const aiMsg = await this.chatService.saveMessage(
-          room.id, aiText, MessageRole.ASSISTANT,
+          room.id, aiText, MessageRole.ASSISTANT, undefined, aiMeta,
         );
         this.server.to(`room:${room.id}`).emit('new_message', {
           ...aiMsg, roomId: room.id,
@@ -327,7 +327,7 @@ export class ChatGateway
     await this.chatService.closeRoom(data.roomId);
     this.server.to(`room:${data.roomId}`).emit('room_closed', {
       roomId: data.roomId,
-      message: 'This conversation has been resolved. Thank you for contacting SolarHub!',
+      message: 'This conversation has been resolved. Thank you for contacting Solar Maket!',
     });
   }
 

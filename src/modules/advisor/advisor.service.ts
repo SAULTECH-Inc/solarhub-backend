@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { AdvisorSession } from './advisor.entity';
+import { Product } from '../products/product.entity';
 
 interface Appliance {
   name: string;
@@ -21,7 +22,20 @@ interface Preferences {
   priority: 'all' | 'budget' | 'quality' | 'compact';
 }
 
-const ADVISOR_PROMPT = (appTxt: string, totalWh: number, totalW: number, prefs: Preferences) => `
+const FALLBACK_PRICES = `NGN PRICES 2025:
+400W panel ₦160k-220k | 550W ₦210k-290k | 580W+ ₦240k-330k
+200Ah LiFePO4 48V ₦780k-980k | 200Ah AGM 12V ₦185k-245k
+5.12kWh LiFePO4 pack ₦920k-1.35M
+Inverters: 3kVA ₦200k-520k, 5kVA ₦400k-950k, 8kVA ₦650k-1.3M, 10kVA ₦850k-1.7M, 12kVA ₦1M-2.1M
+MPPT: 40A ₦90k-160k, 80A ₦200k-440k | Accessories ₦70k-200k`;
+
+const ADVISOR_PROMPT = (
+  appTxt: string,
+  totalWh: number,
+  totalW: number,
+  prefs: Preferences,
+  priceContext?: string,
+) => `
 You are a professional solar systems engineer for the Nigerian residential off-grid/hybrid market.
 
 Design THREE complete solar system recommendations.
@@ -46,12 +60,7 @@ REC1 "budget" "💰": AGM 200Ah, 400W panels, pure sine inverter + separate MPPT
 REC2 "performance" "🏆": LiFePO4, 550W N-type, hybrid inverter (built-in MPPT + grid failover)
 REC3 "spacesaver" "📦": LiFePO4 stackable packs (5.12kWh each), all-in-one hybrid (Deye/Growatt), NO separate controller (null), 580W+ panels
 
-NGN PRICES 2025:
-400W panel ₦160k-220k | 550W ₦210k-290k | 580W+ ₦240k-330k
-200Ah LiFePO4 48V ₦780k-980k | 200Ah AGM 12V ₦185k-245k
-5.12kWh LiFePO4 pack ₦920k-1.35M
-Inverters: 3kVA ₦200k-520k, 5kVA ₦400k-950k, 8kVA ₦650k-1.3M, 10kVA ₦850k-1.7M, 12kVA ₦1M-2.1M
-MPPT: 40A ₦90k-160k, 80A ₦200k-440k | Accessories ₦70k-200k
+${priceContext || FALLBACK_PRICES}
 
 Return ONLY valid JSON (no markdown):
 {
@@ -89,6 +98,8 @@ export class AdvisorService {
   constructor(
     @InjectRepository(AdvisorSession)
     private readonly sessionRepo: Repository<AdvisorSession>,
+    @InjectRepository(Product)
+    private readonly productRepo: Repository<Product>,
     private readonly cfg: ConfigService,
   ) {
     this.anthropic = new Anthropic({ apiKey: cfg.get('anthropic.apiKey') });
@@ -99,7 +110,6 @@ export class AdvisorService {
     preferences: Preferences,
     userId?: string,
   ): Promise<{ session: AdvisorSession; results: any }> {
-    // Compute totals
     const totalW = appliances.reduce((s, a) => s + a.watts * a.quantity, 0);
     const totalWh = appliances.reduce(
       (s, a) => s + a.watts * a.quantity * (a.hoursPerDay || 8), 0,
@@ -109,6 +119,9 @@ export class AdvisorService {
       .map(a => `- ${a.name} (×${a.quantity}): ${a.watts}W × ${a.hoursPerDay}h = ${Math.round(a.watts * a.quantity * a.hoursPerDay)}Wh/day`)
       .join('\n');
 
+    // Fetch live prices from marketplace (non-fatal)
+    const priceContext = await this.getProductPriceContext().catch(() => '');
+
     let results: any;
 
     try {
@@ -117,7 +130,7 @@ export class AdvisorService {
         max_tokens: 4096,
         messages: [{
           role: 'user',
-          content: ADVISOR_PROMPT(appTxt, totalWh, totalW, preferences),
+          content: ADVISOR_PROMPT(appTxt, totalWh, totalW, preferences, priceContext || undefined),
         }],
       });
 
@@ -130,7 +143,6 @@ export class AdvisorService {
       results = this.fallbackCalc(appliances, totalW, totalWh, preferences);
     }
 
-    // Persist session
     const session = await this.sessionRepo.save(
       this.sessionRepo.create({
         userId,
@@ -143,6 +155,142 @@ export class AdvisorService {
     );
 
     return { session, results };
+  }
+
+  // ── Marketplace items for a specific recommendation ───────────
+  async getMarketplaceItemsForSession(
+    sessionId: string,
+    tier: string,
+    preference: 'budget' | 'quality' | 'balanced' = 'balanced',
+  ) {
+    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+    if (!session?.results) throw new NotFoundException('Session not found');
+
+    const rec = (session.results as any).recommendations?.find((r: any) => r.id === tier);
+    if (!rec) throw new NotFoundException(`Recommendation "${tier}" not found`);
+
+    const panelW = rec.panels?.wattageEach || 400;
+    const battType: string = rec.batteries?.type || '';
+    const battSearch = battType.includes('LiFePO4') ? 'lifepo4 battery'
+      : battType.includes('AGM') ? 'agm battery'
+      : 'solar battery';
+    const invKva = rec.inverter?.capacityKva || 5;
+    const invSearch = rec.inverter?.hasBuiltInMppt ? `${invKva}kva hybrid inverter` : `${invKva}kva inverter`;
+    const ctrlA = rec.chargeController?.currentA || 40;
+
+    const fetch = (q: string, limit = 6) =>
+      this.buildProductQuery(q, preference).take(limit).getMany();
+
+    const [panels, batteries, inverters, controllers, accessories] = await Promise.all([
+      fetch(`${panelW}W solar panel`),
+      fetch(battSearch),
+      fetch(invSearch),
+      rec.chargeController ? fetch(`MPPT ${ctrlA}A charge controller`) : Promise.resolve([]),
+      fetch('solar cable MC4'),
+    ]);
+
+    const fmt = (products: Product[]) =>
+      products.map(p => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        price: Number(p.price),
+        currency: (p as any).currency || 'NGN',
+        thumbnail: p.thumbnail,
+        averageRating: Number(p.averageRating),
+        reviewCount: p.reviewCount,
+        brand: p.brand,
+        location: [p.sellerCity, p.sellerState].filter(Boolean).join(', '),
+      }));
+
+    return {
+      tier,
+      preference,
+      recommendation: {
+        panels: { quantity: rec.panels?.quantity, wattageEach: panelW },
+        batteries: { quantity: rec.batteries?.quantity, type: battType, capacity: rec.batteries?.capacityAhOrWh },
+        inverter: { capacityKva: invKva, type: rec.inverter?.type },
+        chargeController: rec.chargeController ? { currentA: ctrlA } : null,
+      },
+      products: {
+        panels: fmt(panels),
+        batteries: fmt(batteries),
+        inverters: fmt(inverters),
+        controllers: fmt(controllers),
+        accessories: fmt(accessories),
+      },
+    };
+  }
+
+  // ── Live price context for Claude prompt ──────────────────────
+  private async getProductPriceContext(): Promise<string> {
+    type PriceQuery = { label: string; terms: string[] };
+    const queries: PriceQuery[] = [
+      { label: 'Solar Panels (400W)',    terms: ['400W panel', 'solar panel 400'] },
+      { label: 'Solar Panels (550W+)',   terms: ['550W panel', '580W panel', '550 solar'] },
+      { label: 'LiFePO4 Batteries',     terms: ['lifepo4', 'lithium battery'] },
+      { label: 'AGM Batteries',         terms: ['agm battery', 'gel battery'] },
+      { label: 'Hybrid Inverters',      terms: ['hybrid inverter', 'deye', 'growatt'] },
+      { label: 'Pure Sine Inverters',   terms: ['pure sine inverter', 'luminous inverter'] },
+      { label: 'MPPT Controllers',      terms: ['mppt controller', 'mppt charge'] },
+    ];
+
+    const lines: string[] = [];
+
+    for (const { label, terms } of queries) {
+      try {
+        const params: Record<string, string> = {};
+        terms.forEach((t, i) => { params[`t${i}`] = `%${t}%`; });
+
+        const products = await this.productRepo.createQueryBuilder('p')
+          .where('p.status = :st', { st: 'active' })
+          .andWhere('p.stock > 0')
+          .andWhere(
+            '(' + terms.map((_, i) => `p.name ILIKE :t${i}`).join(' OR ') + ')',
+            params,
+          )
+          .select(['p.price'])
+          .take(40)
+          .getMany();
+
+        if (!products.length) continue;
+
+        const prices = products.map(p => Number(p.price)).filter(p => p > 0).sort((a, b) => a - b);
+        const min = prices[0];
+        const max = prices[prices.length - 1];
+        lines.push(`${label}: ₦${min.toLocaleString()}–₦${max.toLocaleString()} (${prices.length} listings)`);
+      } catch {
+        // skip category on error
+      }
+    }
+
+    if (!lines.length) return '';
+    return `CURRENT SOLAR MAKET LIVE PRICES (updated from marketplace):\n${lines.join('\n')}\nUse these for cost estimates; fall back to your training data if a category is missing.`;
+  }
+
+  private buildProductQuery(
+    search: string,
+    preference: string,
+  ): SelectQueryBuilder<Product> {
+    let qb = this.productRepo.createQueryBuilder('p')
+      .where('p.status = :st', { st: 'active' })
+      .andWhere('p.stock > 0')
+      .andWhere('(p.name ILIKE :q OR p.brand ILIKE :q)', { q: `%${search}%` })
+      .select([
+        'p.id', 'p.name', 'p.slug', 'p.price', 'p.thumbnail',
+        'p.averageRating', 'p.reviewCount', 'p.brand',
+        'p.sellerCity', 'p.sellerState', 'p.stock',
+      ]);
+
+    if (preference === 'budget') {
+      qb = qb.orderBy('p.price', 'ASC');
+    } else if (preference === 'quality') {
+      qb = qb.orderBy('p.averageRating', 'DESC').addOrderBy('p.reviewCount', 'DESC');
+    } else {
+      qb = qb.orderBy('p.averageRating', 'DESC').addOrderBy('p.price', 'ASC');
+    }
+
+    return qb;
   }
 
   async getSession(id: string): Promise<AdvisorSession> {
@@ -161,7 +309,7 @@ export class AdvisorService {
     await this.sessionRepo.update(sessionId, { selectedRecommendation: recommendationId });
   }
 
-  // ── Engineering fallback (no AI) ──────────────────────────
+  // ── Engineering fallback (no AI) ──────────────────────────────
   private fallbackCalc(
     appliances: Appliance[],
     totalW: number,
