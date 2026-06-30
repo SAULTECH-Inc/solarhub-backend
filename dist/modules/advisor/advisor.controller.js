@@ -26,6 +26,9 @@ let AdvisorController = class AdvisorController {
     calculate(body, user) {
         return this.svc.calculate(body.appliances, body.preferences, user?.id);
     }
+    chat(body) {
+        return this.svc.chatWithBot(body.message, body.history);
+    }
     getSessions(uid) {
         return this.svc.getUserSessions(uid);
     }
@@ -54,6 +57,16 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdvisorController.prototype, "calculate", null);
+__decorate([
+    (0, decorators_1.Public)(),
+    (0, common_1.Post)('chat'),
+    (0, swagger_1.ApiOperation)({ summary: 'SolarBot AI chat (REST fallback when WebSocket unavailable)' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdvisorController.prototype, "chat", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)('JWT'),

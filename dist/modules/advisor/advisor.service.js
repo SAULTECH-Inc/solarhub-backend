@@ -125,6 +125,43 @@ let AdvisorService = AdvisorService_1 = class AdvisorService {
         }));
         return { session, results };
     }
+    async chatWithBot(message, history = []) {
+        const SYSTEM = `You are SolarBot, the AI assistant for Solar Maket — Nigeria's solar energy marketplace.
+You help users with:
+- Sizing solar systems (panels, batteries, inverters) for their appliances and budget
+- Understanding solar products and comparing options
+- Price guidance in Nigerian Naira (NGN)
+- Finding certified solar engineers on the platform
+- Explaining how the Solar Maket platform works
+
+Current NGN price ranges (2025):
+${FALLBACK_PRICES}
+
+Rules:
+- Always respond in plain conversational English (no markdown lists unless helpful)
+- For system sizing questions, ask for their appliances and daily usage if not provided
+- Recommend using the Solar Advisor tool on the platform for precise calculations
+- Never make up order details, tracking info, or engineer availability
+- Keep responses concise (2–4 sentences unless more detail is needed)`;
+        try {
+            const msgs = [
+                ...history.slice(-6).map(h => ({ role: h.role, content: h.content })),
+                { role: 'user', content: message },
+            ];
+            const response = await this.anthropic.messages.create({
+                model: this.cfg.get('anthropic.model', 'claude-haiku-4-5-20251001'),
+                max_tokens: 512,
+                system: SYSTEM,
+                messages: msgs,
+            });
+            const reply = response.content[0].text?.trim() || '';
+            return { reply };
+        }
+        catch (err) {
+            this.logger.warn(`SolarBot chat AI failed: ${err.message}`);
+            return { reply: "I'm having trouble connecting right now. Please try again in a moment, or use our Solar Advisor tool for system calculations." };
+        }
+    }
     async getMarketplaceItemsForSession(sessionId, tier, preference = 'balanced') {
         const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
         if (!session?.results)

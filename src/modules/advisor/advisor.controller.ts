@@ -16,6 +16,13 @@ export class AdvisorController {
     return this.svc.calculate(body.appliances, body.preferences, user?.id);
   }
 
+  @Public()
+  @Post('chat')
+  @ApiOperation({ summary: 'SolarBot AI chat (REST fallback when WebSocket unavailable)' })
+  chat(@Body() body: { message: string; history?: Array<{ role: 'user' | 'assistant'; content: string }> }) {
+    return this.svc.chatWithBot(body.message, body.history);
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')
   @Get('sessions')

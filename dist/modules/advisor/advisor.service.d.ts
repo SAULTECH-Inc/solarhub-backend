@@ -27,6 +27,12 @@ export declare class AdvisorService {
         session: AdvisorSession;
         results: any;
     }>;
+    chatWithBot(message: string, history?: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+    }>): Promise<{
+        reply: string;
+    }>;
     getMarketplaceItemsForSession(sessionId: string, tier: string, preference?: 'budget' | 'quality' | 'balanced'): Promise<{
         tier: string;
         preference: "budget" | "quality" | "balanced";

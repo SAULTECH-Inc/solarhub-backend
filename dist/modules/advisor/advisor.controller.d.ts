@@ -6,6 +6,15 @@ export declare class AdvisorController {
         session: import("./advisor.entity").AdvisorSession;
         results: any;
     }>;
+    chat(body: {
+        message: string;
+        history?: Array<{
+            role: 'user' | 'assistant';
+            content: string;
+        }>;
+    }): Promise<{
+        reply: string;
+    }>;
     getSessions(uid: string): Promise<import("./advisor.entity").AdvisorSession[]>;
     getSession(id: string): Promise<import("./advisor.entity").AdvisorSession>;
     saveSelection(id: string, recId: string): Promise<void>;
