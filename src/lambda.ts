@@ -7,11 +7,6 @@
  *  - Bull queue workers do NOT run — jobs queue but never process
  *  - All REST API endpoints work normally
  */
-// Force nft (Vercel's file tracer) to include firebase-admin subpath modules
-// that it can't discover via package.json exports field resolution.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-void [require('firebase-admin/app'), require('firebase-admin/messaging')];
-
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType } from '@nestjs/common';

@@ -13,30 +13,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FirebaseAdminService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const app_1 = require("firebase-admin/app");
-const messaging_1 = require("firebase-admin/messaging");
 let FirebaseAdminService = FirebaseAdminService_1 = class FirebaseAdminService {
     constructor(cfg) {
         this.cfg = cfg;
         this.logger = new common_1.Logger(FirebaseAdminService_1.name);
         this.messaging = null;
     }
-    onModuleInit() {
+    async onModuleInit() {
         const serviceAccountJson = this.cfg.get('firebase.serviceAccountKey');
         if (!serviceAccountJson) {
             this.logger.warn('FIREBASE_SERVICE_ACCOUNT_KEY not set — push notifications disabled');
             return;
         }
         try {
+            const { initializeApp, getApps, cert } = await Promise.resolve().then(() => require('firebase-admin/app'));
+            const { getMessaging } = await Promise.resolve().then(() => require('firebase-admin/messaging'));
             const serviceAccount = JSON.parse(serviceAccountJson);
-            const app = (0, app_1.getApps)().length
-                ? (0, app_1.getApps)()[0]
-                : (0, app_1.initializeApp)({ credential: (0, app_1.cert)(serviceAccount) });
-            this.messaging = (0, messaging_1.getMessaging)(app);
+            const app = getApps().length
+                ? getApps()[0]
+                : initializeApp({ credential: cert(serviceAccount) });
+            this.messaging = getMessaging(app);
             this.logger.log('Firebase Admin SDK initialised');
         }
         catch (e) {
-            this.logger.error('Firebase Admin SDK init failed', e.message);
+            this.logger.warn(`Firebase Admin SDK unavailable — push notifications disabled: ${e.message}`);
         }
     }
     isReady() {

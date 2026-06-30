@@ -5,7 +5,7 @@ export declare class FirebaseAdminService implements OnModuleInit {
     private readonly logger;
     private messaging;
     constructor(cfg: ConfigService);
-    onModuleInit(): void;
+    onModuleInit(): Promise<void>;
     isReady(): boolean;
     sendMulticast(tokens: string[], title: string, body: string, data?: Record<string, string>): Promise<void>;
 }
