@@ -1,0 +1,30 @@
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+export declare const REDIS_CLIENT = "REDIS_CLIENT";
+export declare class RedisService {
+    private readonly redis;
+    private readonly cfg;
+    private readonly defaultTtl;
+    constructor(redis: Redis, cfg: ConfigService);
+    get<T = string>(key: string): Promise<T | null>;
+    set(key: string, value: any, ttl?: number): Promise<void>;
+    del(...keys: string[]): Promise<void>;
+    exists(key: string): Promise<boolean>;
+    ttl(key: string): Promise<number>;
+    incr(key: string): Promise<number>;
+    expire(key: string, seconds: number): Promise<void>;
+    delByPattern(pattern: string): Promise<void>;
+    hset(key: string, field: string, value: any): Promise<void>;
+    hget<T = any>(key: string, field: string): Promise<T | null>;
+    hgetall<T = Record<string, any>>(key: string): Promise<T | null>;
+    zadd(key: string, score: number, member: string): Promise<void>;
+    zrange(key: string, start: number, stop: number): Promise<string[]>;
+    publish(channel: string, message: any): Promise<void>;
+    setSession(userId: string, tokenId: string, data: any, ttl?: number): Promise<void>;
+    getSession(userId: string, tokenId: string): Promise<any>;
+    invalidateAllSessions(userId: string): Promise<void>;
+    setOtp(email: string, otp: string, ttl?: number): Promise<void>;
+    verifyOtp(email: string, otp: string): Promise<boolean>;
+    rateLimit(key: string, limit: number, window: number): Promise<boolean>;
+    cacheOrFetch<T>(key: string, fetcher: () => Promise<T>, ttl?: number): Promise<T>;
+}

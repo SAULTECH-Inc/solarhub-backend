@@ -1,0 +1,91 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DeliveryController = void 0;
+const openapi = require("@nestjs/swagger");
+const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
+const delivery_service_1 = require("./delivery.service");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
+const decorators_1 = require("../../common/decorators");
+let DeliveryController = class DeliveryController {
+    constructor(svc) {
+        this.svc = svc;
+    }
+    getTracking(orderId) {
+        return this.svc.getTrackingHistory(orderId);
+    }
+    trackByCode(code) {
+        return this.svc.getByTrackingCode(code);
+    }
+    addEvent(orderId, body, uid) {
+        return this.svc.addEvent(orderId, body.event, {
+            ...body,
+            updatedBy: uid,
+        });
+    }
+    getStats() { return this.svc.getDeliveryStats(); }
+};
+exports.DeliveryController = DeliveryController;
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, common_1.Get)('order/:orderId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get full tracking history for an order' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('orderId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], DeliveryController.prototype, "getTracking", null);
+__decorate([
+    (0, decorators_1.Public)(),
+    (0, common_1.Get)('track/:code'),
+    (0, swagger_1.ApiOperation)({ summary: 'Public tracking by tracking code' }),
+    openapi.ApiResponse({ status: 200, type: Object }),
+    __param(0, (0, common_1.Param)('code')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], DeliveryController.prototype, "trackByCode", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin', 'seller'),
+    (0, common_1.Post)('order/:orderId/event'),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a tracking event (seller/admin)' }),
+    openapi.ApiResponse({ status: 201, type: require("./delivery.entity").DeliveryTracking }),
+    __param(0, (0, common_1.Param)('orderId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, decorators_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, String]),
+    __metadata("design:returntype", void 0)
+], DeliveryController.prototype, "addEvent", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Get)('admin/stats'),
+    openapi.ApiResponse({ status: 200 }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], DeliveryController.prototype, "getStats", null);
+exports.DeliveryController = DeliveryController = __decorate([
+    (0, swagger_1.ApiTags)('Delivery'),
+    (0, common_1.Controller)('delivery'),
+    __metadata("design:paramtypes", [delivery_service_1.DeliveryService])
+], DeliveryController);
+//# sourceMappingURL=delivery.controller.js.map

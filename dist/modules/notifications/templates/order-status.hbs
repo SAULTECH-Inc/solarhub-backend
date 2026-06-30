@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body{margin:0;padding:0;background:#06080d;font-family:Arial,sans-serif;color:#e2e8f0}
+    .wrap{max-width:560px;margin:40px auto;background:#111827;border:1px solid #1e293b;border-radius:12px;overflow:hidden}
+    .header{padding:24px 32px;border-bottom:1px solid #1e293b;background:linear-gradient(135deg,#111827,#162032);display:flex;justify-content:space-between;align-items:center}
+    .logo{font-size:19px;font-weight:700;color:#f59e0b}
+    .order-no{font-size:12px;color:#94a3b8}
+    .body{padding:32px}
+    h2{font-size:20px;font-weight:700;margin:0 0 10px}
+    p{color:#94a3b8;font-size:14px;line-height:1.65;margin:0 0 14px}
+    .status-bar{border-radius:8px;padding:14px 18px;margin:20px 0;display:flex;align-items:center;gap:12px}
+    .status-bar.green{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3)}
+    .status-bar.amber{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3)}
+    .status-bar.blue{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3)}
+    .status-icon{font-size:24px;flex-shrink:0}
+    .status-text{font-size:14px;font-weight:600}
+    .status-text.green{color:#10b981}
+    .status-text.amber{color:#f59e0b}
+    .status-text.blue{color:#3b82f6}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+    .info-box{background:#162032;border:1px solid #253044;border-radius:8px;padding:12px}
+    .info-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:#475569;margin-bottom:5px}
+    .info-val{font-size:13.5px;font-weight:500;color:#e2e8f0}
+    .timeline{margin:20px 0}
+    .titem{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+    .tdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .tdot.done{background:#10b981}
+    .tdot.on{background:#f59e0b}
+    .tdot.off{background:#253044}
+    .ttext{font-size:13px;color:#94a3b8}
+    .ttext.done,.ttext.on{color:#e2e8f0}
+    .cta{display:block;background:#f59e0b;color:#000;text-align:center;padding:13px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;margin:20px 0}
+    .footer{padding:18px 32px;border-top:1px solid #1e293b;text-align:center;font-size:12px;color:#475569}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="logo">☀️ Solar Maket</div>
+      <div class="order-no">{{order.orderNumber}}</div>
+    </div>
+    <div class="body">
+      {{#if (eq status "delivered")}}
+        <h2>Your Order Has Arrived! 🎉</h2>
+        <div class="status-bar green"><span class="status-icon">✅</span><div class="status-text green">Delivered Successfully</div></div>
+        <p>Hi {{firstName}}, your order has been delivered. We hope you're happy with your purchase! Don't forget to leave a review.</p>
+      {{else if (eq status "out_delivery")}}
+        <h2>Out for Delivery Today! 🛵</h2>
+        <div class="status-bar amber"><span class="status-icon">🛵</span><div class="status-text amber">Out for Delivery</div></div>
+        <p>Hi {{firstName}}, your order is on its way and will be delivered today. Please make sure someone is available to receive it.</p>
+      {{else if (eq status "in_transit")}}
+        <h2>Your Order is on the Move 🚚</h2>
+        <div class="status-bar blue"><span class="status-icon">🚚</span><div class="status-text blue">In Transit</div></div>
+        <p>Hi {{firstName}}, your order has been picked up and is in transit to your location.</p>
+      {{else if (eq status "dispatched")}}
+        <h2>Order Dispatched from Seller 🏭</h2>
+        <div class="status-bar amber"><span class="status-icon">🏭</span><div class="status-text amber">Dispatched</div></div>
+        <p>Hi {{firstName}}, the seller has dispatched your order. It's on its way!</p>
+      {{else if (eq status "confirmed")}}
+        <h2>Payment Confirmed ✅</h2>
+        <div class="status-bar green"><span class="status-icon">💳</span><div class="status-text green">Payment Received</div></div>
+        <p>Hi {{firstName}}, your payment has been confirmed. The seller is now preparing your order.</p>
+      {{else}}
+        <h2>Order Update 📦</h2>
+        <div class="status-bar blue"><span class="status-icon">📦</span><div class="status-text blue">{{status}}</div></div>
+        <p>Hi {{firstName}}, there's an update on your order {{order.orderNumber}}.</p>
+      {{/if}}
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="info-label">Order Number</div>
+          <div class="info-val">{{order.orderNumber}}</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Est. Delivery</div>
+          <div class="info-val" style="color:#10b981">{{order.estimatedDelivery}}</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Tracking Code</div>
+          <div class="info-val">{{order.trackingCode}}</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Total</div>
+          <div class="info-val" style="color:#f59e0b">₦{{order.total}}</div>
+        </div>
+      </div>
+
+      <a href="{{order.trackingUrl}}" class="cta">📍 Track Your Order</a>
+    </div>
+    <div class="footer">© {{year}} Solar Maket Nigeria Ltd. All rights reserved.</div>
+  </div>
+</body>
+</html>

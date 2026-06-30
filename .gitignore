@@ -1,5 +1,5 @@
 node_modules
-dist
+# dist is committed so Vercel can deploy without a build step
 build
 coverage
 .DS_Store
@@ -22,3 +22,4 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 *.swp
+.vercel
