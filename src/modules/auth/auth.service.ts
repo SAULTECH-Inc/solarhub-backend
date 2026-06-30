@@ -1,6 +1,6 @@
 import {
   Injectable, UnauthorizedException, BadRequestException,
-  ConflictException, NotFoundException, ForbiddenException, Logger,
+  ConflictException, NotFoundException, ForbiddenException, HttpException, Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -84,11 +84,12 @@ export class AuthService {
   async login(dto: LoginDto, ip?: string): Promise<{ accessToken: string; refreshToken: string; user: Partial<User> }> {
     const user = await this.userRepo.findOne({
       where: { email: dto.email.toLowerCase() },
-      select: ['id','email','firstName','lastName','role','status','emailVerified','password','loginAttempts','lockoutUntil','notificationPrefs','avatar','sellerVerified'],
+      select: ['id','email','firstName','lastName','role','status','emailVerified','password','provider','loginAttempts','lockoutUntil','notificationPrefs','avatar','sellerVerified'],
     });
 
     if (!user) throw new UnauthorizedException('Invalid credentials');
     if (user.isLocked) throw new ForbiddenException('Account temporarily locked. Try again later.');
+    if (user.provider !== AuthProvider.LOCAL) throw new UnauthorizedException('This account uses ' + user.provider + ' sign-in. Please use that instead.');
 
     const valid = await user.comparePassword(dto.password);
     if (!valid) {
@@ -102,7 +103,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.emailVerified) throw new ForbiddenException('Please verify your email first');
+    if (!user.emailVerified) {
+      // Best-effort OTP resend — don't let errors block the response
+      try {
+        const otp = generateOtp();
+        await this.redis.setOtp(user.email, otp, 600);
+        await this.notif.sendEmailVerification(user, otp);
+      } catch (e) {
+        this.logger.warn(`Could not resend OTP to ${user.email}: ${e.message}`);
+      }
+      throw new HttpException(
+        { statusCode: 403, requiresVerification: true, email: user.email, message: 'Please verify your email. A new OTP has been sent.' },
+        403,
+      );
+    }
     if (user.status === UserStatus.SUSPENDED) throw new ForbiddenException('Account suspended. Contact support.');
     if (user.status !== UserStatus.ACTIVE) throw new ForbiddenException('Account not active');
 
