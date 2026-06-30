@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { MailerService } from '@nestjs-modules/mailer';
 import { Notification, NotificationType } from './notification.entity';
+import { PushToken } from './push-token.entity';
+import { FirebaseAdminService } from './firebase-admin.service';
 import { User } from '../users/user.entity';
 import { paginate, paginationToSkipTake } from '../../common/utils/pagination.util';
 
@@ -14,8 +17,36 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly repo: Repository<Notification>,
+    @InjectRepository(PushToken)
+    private readonly pushTokenRepo: Repository<PushToken>,
     @InjectQueue('email') private readonly emailQueue: Queue,
+    private readonly mailer: MailerService,
+    private readonly firebase: FirebaseAdminService,
   ) {}
+
+  // ── Push token management ──────────────────────────────────
+  async registerPushToken(userId: string, token: string, platform: string) {
+    await this.pushTokenRepo.upsert(
+      { userId, token, platform },
+      { conflictPaths: ['token'] },
+    );
+  }
+
+  async unregisterPushToken(userId: string, token: string) {
+    await this.pushTokenRepo.delete({ userId, token });
+  }
+
+  private async sendPush(
+    userId: string,
+    title: string,
+    body: string,
+    data: Record<string, string> = {},
+  ) {
+    if (!this.firebase.isReady()) return;
+    const tokens = await this.pushTokenRepo.find({ where: { userId }, select: ['token'] });
+    if (!tokens.length) return;
+    await this.firebase.sendMulticast(tokens.map(t => t.token), title, body, data);
+  }
 
   // ── Email dispatch (queued) ────────────────────────────────
   private async sendEmail(job: string, data: any, opts?: any) {
@@ -27,10 +58,13 @@ export class NotificationsService {
   }
 
   async sendEmailVerification(user: User, otp: string) {
-    await this.sendEmail('email-verification', {
-      to:        user.email,
-      firstName: user.firstName,
-      otp,
+    // Sent directly — OTP must arrive immediately; Bull queue workers
+    // don't run on Vercel serverless so queuing would silently drop it.
+    await this.mailer.sendMail({
+      to:       user.email,
+      subject:  `${otp} — Verify your Solar Maket email`,
+      template: 'email-verification',
+      context:  { firstName: user.firstName, otp, year: new Date().getFullYear() },
     });
   }
 
@@ -41,9 +75,13 @@ export class NotificationsService {
   }
 
   async sendPasswordReset(user: User, token: string) {
-    await this.sendEmail('password-reset', {
-      to: user.email, firstName: user.firstName, token,
-      resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
+    // Sent directly — same reason as sendEmailVerification.
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    await this.mailer.sendMail({
+      to:       user.email,
+      subject:  'Reset your Solar Maket password',
+      template: 'password-reset',
+      context:  { firstName: user.firstName, resetUrl, year: new Date().getFullYear() },
     });
   }
 
@@ -110,7 +148,7 @@ export class NotificationsService {
     });
     await this.createInApp(user.id, NotificationType.PRODUCT_APPROVED, {
       title: 'Product Approved',
-      body: `Your product "${product.name}" is now live on SolarHub!`,
+      body: `Your product "${product.name}" is now live on Solar Maket!`,
       data: { productId: product.id },
     });
   }
@@ -130,7 +168,15 @@ export class NotificationsService {
     payload: { title: string; body: string; data?: any },
   ): Promise<Notification> {
     const notif = this.repo.create({ userId, type, ...payload });
-    return this.repo.save(notif);
+    const saved = await this.repo.save(notif);
+    // Fire push in background — don't await, non-fatal
+    this.sendPush(userId, payload.title, payload.body, {
+      type,
+      ...(payload.data ? Object.fromEntries(
+        Object.entries(payload.data).map(([k, v]) => [k, String(v)])
+      ) : {}),
+    }).catch(e => this.logger.warn('Push send failed', e?.message));
+    return saved;
   }
 
   async getUserNotifications(userId: string, page: number, limit: number) {
