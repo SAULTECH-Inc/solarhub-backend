@@ -64,8 +64,14 @@ export class UploadsController {
     return result;
   }
 
+  @Delete()
+  @ApiOperation({ summary: 'Delete image from Cloudinary by publicId query param (supports paths with slashes)' })
+  deleteImageByQuery(@Query('publicId') publicId: string) {
+    return this.svc.deleteImage(publicId);
+  }
+
   @Delete(':publicId')
-  @ApiOperation({ summary: 'Delete image from Cloudinary' })
+  @ApiOperation({ summary: 'Delete image from Cloudinary (single-segment publicId only)' })
   deleteImage(@Param('publicId') publicId: string) {
     return this.svc.deleteImage(publicId);
   }
