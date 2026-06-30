@@ -11,7 +11,11 @@
       }
     }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/dist/lambda.js" }
+  "routes": [{ "src": "/(.*)", "dest": "/dist/lambda.js" }],
+  "crons": [
+    {
+      "path": "/api/v1/tasks/cron/remind-unverified",
+      "schedule": "0 10 * * *"
+    }
   ]
 }

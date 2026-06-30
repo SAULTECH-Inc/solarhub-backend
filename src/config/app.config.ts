@@ -9,6 +9,7 @@ export const appConfig = registerAs('app', () => ({
   maxUploadMb:  parseInt(process.env.MAX_UPLOAD_SIZE_MB, 10) || 10,
   defaultCurrency: process.env.DEFAULT_CURRENCY || 'NGN',
   supportedCurrencies: (process.env.SUPPORTED_CURRENCIES || 'NGN,USD,CNY,GHS').split(','),
+  cronSecret: process.env.CRON_SECRET || '',
 }));
 
 export const dbConfig = registerAs('database', () => ({
@@ -57,8 +58,8 @@ export const emailConfig = registerAs('email', () => ({
   port:      parseInt(process.env.SMTP_PORT, 10) || 587,
   user:      process.env.SMTP_USER,
   pass:      process.env.SMTP_PASS,
-  fromName:  process.env.SMTP_FROM_NAME || 'SolarHub',
-  fromEmail: process.env.SMTP_FROM_EMAIL || 'noreply@solarhub.ng',
+  fromName:  process.env.SMTP_FROM_NAME || 'Solar Maket',
+  fromEmail: process.env.SMTP_FROM_EMAIL || 'noreply@solarmaket.ng',
 }));
 
 export const paystackConfig = registerAs('paystack', () => ({
@@ -73,6 +74,20 @@ export const stripeConfig = registerAs('stripe', () => ({
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 }));
 
+export const flutterwaveConfig = registerAs('flutterwave', () => ({
+  secretKey:   process.env.FLW_SECRET_KEY,
+  publicKey:   process.env.FLW_PUBLIC_KEY,
+  webhookHash: process.env.FLW_SECRET_HASH,   // plain string set in Flutterwave dashboard → Settings → API → Webhook Hash
+}));
+
+export const paddleConfig = registerAs('paddle', () => ({
+  apiKey:        process.env.PADDLE_API_KEY,
+  clientToken:   process.env.PADDLE_CLIENT_TOKEN,  // public token for Paddle.js
+  webhookSecret: process.env.PADDLE_WEBHOOK_SECRET,
+  productId:     process.env.PADDLE_PRODUCT_ID,    // create once: Products → New Product (type: Standard, one-time)
+  environment:   (process.env.PADDLE_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production',
+}));
+
 export const cloudinaryConfig = registerAs('cloudinary', () => ({
   cloudName: process.env.CLOUDINARY_CLOUD_NAME,
   apiKey:    process.env.CLOUDINARY_API_KEY,
@@ -82,4 +97,9 @@ export const cloudinaryConfig = registerAs('cloudinary', () => ({
 export const throttleConfig = registerAs('throttle', () => ({
   ttl:   parseInt(process.env.THROTTLE_TTL, 10) || 60,
   limit: parseInt(process.env.THROTTLE_LIMIT, 10) || 100,
+}));
+
+export const firebaseConfig = registerAs('firebase', () => ({
+  // Full service account JSON as a single-line string (escape newlines in private key)
+  serviceAccountKey: process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
 }));

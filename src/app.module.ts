@@ -9,7 +9,8 @@ import {
   appConfig, dbConfig, redisConfig, jwtConfig,
   googleConfig, anthropicConfig, openaiConfig,
   emailConfig, paystackConfig, stripeConfig,
-  cloudinaryConfig, throttleConfig,
+  flutterwaveConfig, paddleConfig,
+  cloudinaryConfig, throttleConfig, firebaseConfig,
 } from '@config/app.config';
 
 import { AuthModule }          from '@modules/auth/auth.module';
@@ -30,6 +31,9 @@ import { AdminModule }         from '@modules/admin/admin.module';
 import { RedisModule }         from '@modules/redis/redis.module';
 import { EngineersModule }     from '@modules/engineers/engineers.module';
 import { RfqsModule }          from '@modules/rfqs/rfqs.module';
+import { SubscriptionsModule } from '@modules/subscriptions/subscriptions.module';
+import { LogisticsModule }     from '@modules/logistics/logistics.module';
+import { TasksModule }         from '@modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -41,7 +45,8 @@ import { RfqsModule }          from '@modules/rfqs/rfqs.module';
         appConfig, dbConfig, redisConfig, jwtConfig,
         googleConfig, anthropicConfig, openaiConfig,
         emailConfig, paystackConfig, stripeConfig,
-        cloudinaryConfig, throttleConfig,
+        flutterwaveConfig, paddleConfig,
+        cloudinaryConfig, throttleConfig, firebaseConfig,
       ],
     }),
 
@@ -118,6 +123,9 @@ import { RfqsModule }          from '@modules/rfqs/rfqs.module';
     AdminModule,
     EngineersModule,
     RfqsModule,
+    SubscriptionsModule,
+    LogisticsModule,
+    TasksModule,
   ],
   providers: [
     // Global rate-limit guard

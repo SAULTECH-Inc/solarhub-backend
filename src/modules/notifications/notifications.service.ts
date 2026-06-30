@@ -68,6 +68,15 @@ export class NotificationsService {
     });
   }
 
+  async sendVerificationReminder(user: User, otp: string) {
+    await this.mailer.sendMail({
+      to:       user.email,
+      subject:  `${otp} — Complete your Solar Maket signup`,
+      template: 'verification-reminder',
+      context:  { firstName: user.firstName, otp, year: new Date().getFullYear() },
+    });
+  }
+
   async sendWelcomeEmail(user: User) {
     await this.sendEmail('welcome', {
       to: user.email, firstName: user.firstName,
