@@ -13,7 +13,7 @@ export class EmailProcessor {
   async handleEmailVerification(job: Job<{ to: string; firstName: string; otp: string }>) {
     const { to, firstName, otp } = job.data;
     await this.mailer.sendMail({
-      to, subject: `${otp} — Verify your SolarHub email`,
+      to, subject: `${otp} — Verify your Solar Maket email`,
       template: 'email-verification',
       context: { firstName, otp, year: new Date().getFullYear() },
     });
@@ -24,7 +24,7 @@ export class EmailProcessor {
   async handleWelcome(job: Job<{ to: string; firstName: string }>) {
     const { to, firstName } = job.data;
     await this.mailer.sendMail({
-      to, subject: '🌞 Welcome to SolarHub Nigeria!',
+      to, subject: '🌞 Welcome to Solar Maket Nigeria!',
       template: 'welcome',
       context: { firstName, year: new Date().getFullYear() },
     });
@@ -34,7 +34,7 @@ export class EmailProcessor {
   async handlePasswordReset(job: Job<{ to: string; firstName: string; resetUrl: string }>) {
     const { to, firstName, resetUrl } = job.data;
     await this.mailer.sendMail({
-      to, subject: 'Reset your SolarHub password',
+      to, subject: 'Reset your Solar Maket password',
       template: 'password-reset',
       context: { firstName, resetUrl, year: new Date().getFullYear() },
     });
@@ -44,7 +44,7 @@ export class EmailProcessor {
   async handlePasswordChanged(job: Job<{ to: string; firstName: string }>) {
     const { to, firstName } = job.data;
     await this.mailer.sendMail({
-      to, subject: 'Your SolarHub password has been changed',
+      to, subject: 'Your Solar Maket password has been changed',
       template: 'password-changed',
       context: { firstName, year: new Date().getFullYear() },
     });
@@ -54,7 +54,7 @@ export class EmailProcessor {
   async handleOrderConfirmation(job: Job<{ to: string; firstName: string; order: any }>) {
     const { to, firstName, order } = job.data;
     await this.mailer.sendMail({
-      to, subject: `Order ${order.orderNumber} Confirmed — SolarHub`,
+      to, subject: `Order ${order.orderNumber} Confirmed — Solar Maket`,
       template: 'order-confirmation',
       context: { firstName, order, year: new Date().getFullYear() },
     });
@@ -101,7 +101,7 @@ export class EmailProcessor {
   async handleProductApproved(job: Job<{ to: string; firstName: string; product: any }>) {
     const { to, firstName, product } = job.data;
     await this.mailer.sendMail({
-      to, subject: `Your product "${product.name}" is live on SolarHub! ☀️`,
+      to, subject: `Your product "${product.name}" is live on Solar Maket! ☀️`,
       template: 'product-approved',
       context: { firstName, product, year: new Date().getFullYear() },
     });

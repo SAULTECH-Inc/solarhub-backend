@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Param, Body,
-  Query, UseGuards, HttpCode, HttpStatus,
+  Query, UseGuards, HttpCode, HttpStatus, Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
@@ -9,7 +9,7 @@ import { ProductsService } from '../products/products.service';
 import { OrdersService } from '../orders/orders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators';
+import { Roles, Public } from '../../common/decorators';
 import { UserStatus } from '../users/user.entity';
 
 @ApiTags('Admin')
@@ -24,6 +24,19 @@ export class AdminController {
     private readonly products: ProductsService,
     private readonly orders:   OrdersService,
   ) {}
+
+  // ── Seed super-admin (public, key-protected) ──────────────
+  @Public()
+  @Post('seed')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Promote or create a super-admin account (requires ADMIN_SEED_KEY header)' })
+  seedSuperAdmin(
+    @Headers('x-seed-key') key: string,
+    @Body('email') email: string,
+    @Body('password') password?: string,
+  ) {
+    return this.svc.seedSuperAdmin(key, email, password);
+  }
 
   // ── Dashboard ─────────────────────────────────────────────
   @Get('dashboard')

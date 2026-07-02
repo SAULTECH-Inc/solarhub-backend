@@ -87,6 +87,11 @@ export class Product {
   @Column({ type: 'jsonb', nullable: true })
   specs: Record<string, any>;
 
+  // Bulk / volume discount rules
+  // e.g. [{ type: 'percentage', minQty: 10, value: 10 }, { type: 'free_unit', minQty: 100, value: 1 }]
+  @Column({ type: 'jsonb', nullable: true })
+  discounts: Array<{ type: 'percentage' | 'fixed' | 'free_unit'; minQty: number; value: number }>;
+
   // Analytics
   @Column({ default: 0 })
   views: number;

@@ -10,12 +10,14 @@ import { Payment, PaymentProvider, TxStatus, PaymentMethod } from './payment.ent
 import { OrdersService } from '../orders/orders.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RedisService } from '../redis/redis.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { toSubunit } from '@common/utils/pagination.util';
 
-// Paystack supports NGN, USD, GHS natively
-// Stripe supports USD, CNY (and more) globally
-const PAYSTACK_CURRENCIES = ['NGN', 'USD', 'GHS'];
-const STRIPE_CURRENCIES = ['USD', 'CNY', 'GBP', 'EUR'];
+// Currency routing
+const FLW_CURRENCIES     = ['NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'RWF'];
+const PADDLE_CURRENCIES  = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+const STRIPE_CURRENCIES  = ['CNY'];                   // Paddle doesn't support CNY
+const PAYSTACK_CURRENCIES = ['NGN', 'USD', 'GHS'];    // kept for direct verify/webhook only
 
 @Injectable()
 export class PaymentsService {
@@ -28,17 +30,19 @@ export class PaymentsService {
     private readonly orders: OrdersService,
     private readonly notif: NotificationsService,
     private readonly redis: RedisService,
+    private readonly subscriptions: SubscriptionsService,
   ) {
     this.stripe = new Stripe(cfg.get('stripe.secretKey'), { apiVersion: '2025-02-24.acacia' });
   }
 
-  // ── Initiate payment ──────────────────────────────────────
+  // ── Initiate payment ──────────────────────────────────────────────────────
   async initiatePayment(
     orderId: string,
     userId: string,
     currency: string,
     email: string,
     method?: string,
+    customerName?: string,
   ): Promise<{ provider: string; reference: string; paymentUrl?: string; clientSecret?: string }> {
     const order = await this.orders.findById(orderId, userId, 'buyer');
     if (order.paymentStatus === 'paid') throw new BadRequestException('Order already paid');
@@ -46,27 +50,172 @@ export class PaymentsService {
     const reference = `SH-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const cur = currency.toUpperCase();
 
-    // Create payment record
+    let provider: PaymentProvider;
+    if (FLW_CURRENCIES.includes(cur))     provider = PaymentProvider.FLUTTERWAVE;
+    else if (PADDLE_CURRENCIES.includes(cur)) provider = PaymentProvider.PADDLE;
+    else if (STRIPE_CURRENCIES.includes(cur)) provider = PaymentProvider.STRIPE;
+    else throw new BadRequestException(`Currency ${cur} is not supported`);
+
     const payment = await this.repo.save(
       this.repo.create({
         orderId, userId, reference,
         amount: order.total,
         currency: cur,
-        provider: PAYSTACK_CURRENCIES.includes(cur) ? PaymentProvider.PAYSTACK : PaymentProvider.STRIPE,
+        provider,
         status: TxStatus.PENDING,
       }),
     );
 
-    if (PAYSTACK_CURRENCIES.includes(cur)) {
-      return this.initPaystack(payment, email, order.total, cur, reference);
-    } else if (STRIPE_CURRENCIES.includes(cur)) {
-      return this.initStripe(payment, email, order.total, cur, reference);
+    if (provider === PaymentProvider.FLUTTERWAVE) {
+      return this.initFlutterwave(payment, reference);
+    } else if (provider === PaymentProvider.PADDLE) {
+      return this.initPaddle(payment, email, order.total, cur, reference, customerName);
     } else {
-      throw new BadRequestException(`Currency ${cur} not supported`);
+      return this.initStripe(payment, email, order.total, cur, reference);
     }
   }
 
-  // ── Paystack ──────────────────────────────────────────────
+  // ── Flutterwave ───────────────────────────────────────────────────────────
+  private async initFlutterwave(
+    payment: Payment, reference: string,
+  ): Promise<{ provider: string; reference: string }> {
+    // Inline SDK handles checkout on the frontend — backend just provides reference
+    return { provider: 'flutterwave', reference };
+  }
+
+  async verifyFlutterwave(transactionId: string, txRef: string): Promise<Payment> {
+    const secretKey = this.cfg.get('flutterwave.secretKey');
+    const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transactionId}/verify`, {
+      headers: { 'Authorization': `Bearer ${secretKey}` },
+    });
+    const data = await res.json() as any;
+    if (data.status !== 'success' || data.data.status !== 'successful') {
+      throw new BadRequestException('Flutterwave payment verification failed');
+    }
+    return this.handleSuccessfulPayment(txRef, transactionId.toString(), PaymentProvider.FLUTTERWAVE, data.data);
+  }
+
+  async handleFlutterwaveWebhook(payload: Buffer, signature: string): Promise<void> {
+    const secretHash = this.cfg.get('flutterwave.webhookHash');
+    if (signature !== secretHash) {
+      this.logger.warn('Invalid Flutterwave webhook signature');
+      return;
+    }
+
+    const event = JSON.parse(payload.toString());
+    this.logger.log(`Flutterwave webhook: ${event.event}`);
+
+    if (event.event === 'charge.completed' && event.data?.status === 'successful') {
+      const { tx_ref, id } = event.data;
+      const alreadyDone = await this.redis.get(`webhook:flw:${tx_ref}`);
+      if (alreadyDone) return;
+      await this.redis.set(`webhook:flw:${tx_ref}`, '1', 86400);
+
+      if (event.data?.meta?.subscriptionInvoiceId) {
+        await this.subscriptions.handleWebhookSuccess(event.data.meta.subscriptionInvoiceId, id.toString(), event.data)
+          .catch(e => this.logger.error('Flutterwave subscription webhook error:', e.message));
+      } else {
+        await this.handleSuccessfulPayment(tx_ref, id.toString(), PaymentProvider.FLUTTERWAVE, event.data)
+          .catch(e => this.logger.error('Flutterwave webhook error:', e.message));
+      }
+    }
+  }
+
+  // ── Paddle ────────────────────────────────────────────────────────────────
+  private async initPaddle(
+    payment: Payment, email: string, amount: number, currency: string,
+    reference: string, customerName?: string,
+  ): Promise<{ provider: string; reference: string; paymentUrl: string }> {
+    const apiKey = this.cfg.get('paddle.apiKey');
+    const environment = this.cfg.get('paddle.environment');
+    const productId = this.cfg.get('paddle.productId');
+    const baseUrl = environment === 'production'
+      ? 'https://api.paddle.com'
+      : 'https://sandbox-api.paddle.com';
+
+    const amountCents = String(toSubunit(amount, currency));
+
+    const body: any = {
+      items: [{
+        price: {
+          description: `Solar Maket Order`,
+          product_id: productId,
+          tax_mode: 'external',
+          unit_price: { amount: amountCents, currency_code: currency },
+          billing_cycle: null,
+          quantity: { minimum: 1, maximum: 1 },
+        },
+        quantity: 1,
+      }],
+      custom_data: { orderId: payment.orderId, reference, paymentId: payment.id },
+      checkout: {
+        url: `${process.env.FRONTEND_URL}/orders/${payment.orderId}`,
+      },
+    };
+
+    if (email) {
+      body.customer = { email };
+    }
+
+    const res = await fetch(`${baseUrl}/transactions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json() as any;
+    if (!data.data?.checkout?.url) {
+      throw new BadRequestException(data.error?.detail || 'Paddle init failed');
+    }
+
+    await this.repo.update(payment.id, { gatewayTransactionId: data.data.id });
+    return { provider: 'paddle', reference, paymentUrl: data.data.checkout.url };
+  }
+
+  async handlePaddleWebhook(payload: Buffer, signature: string): Promise<void> {
+    const webhookSecret = this.cfg.get('paddle.webhookSecret');
+
+    // Parse: ts=xxx;h1=xxx
+    const parts = Object.fromEntries(signature.split(';').map(p => p.split('=')));
+    const ts = parts.ts;
+    const h1 = parts.h1;
+
+    const expected = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(`${ts}:${payload.toString()}`)
+      .digest('hex');
+
+    if (expected !== h1) {
+      this.logger.warn('Invalid Paddle webhook signature');
+      return;
+    }
+
+    const event = JSON.parse(payload.toString());
+    this.logger.log(`Paddle webhook: ${event.event_type}`);
+
+    if (event.event_type === 'transaction.completed') {
+      const txData = event.data;
+      const reference = txData.custom_data?.reference;
+      if (!reference) return;
+
+      const alreadyDone = await this.redis.get(`webhook:paddle:${reference}`);
+      if (alreadyDone) return;
+      await this.redis.set(`webhook:paddle:${reference}`, '1', 86400);
+
+      if (txData.custom_data?.subscriptionInvoiceId) {
+        await this.subscriptions.handleWebhookSuccess(txData.custom_data.subscriptionInvoiceId, txData.id, txData)
+          .catch(e => this.logger.error('Paddle subscription webhook error:', e.message));
+      } else {
+        await this.handleSuccessfulPayment(reference, txData.id, PaymentProvider.PADDLE, txData)
+          .catch(e => this.logger.error('Paddle webhook error:', e.message));
+      }
+    }
+  }
+
+  // ── Paystack (legacy — kept for existing payments) ────────────────────────
   private async initPaystack(
     payment: Payment, email: string, amount: number, currency: string, reference: string,
   ) {
@@ -106,7 +255,6 @@ export class PaymentsService {
     return this.handleSuccessfulPayment(reference, data.data.id.toString(), PaymentProvider.PAYSTACK, data.data);
   }
 
-  // ── Paystack webhook ──────────────────────────────────────
   async handlePaystackWebhook(payload: Buffer, signature: string): Promise<void> {
     const webhookSecret = this.cfg.get('paystack.webhookSecret');
     const hash = crypto.createHmac('sha512', webhookSecret).update(payload).digest('hex');
@@ -119,14 +267,18 @@ export class PaymentsService {
     this.logger.log(`Paystack webhook: ${event.event}`);
 
     if (event.event === 'charge.success') {
-      const { reference, id } = event.data;
-      // Idempotency check
+      const { reference, id, metadata } = event.data;
       const alreadyDone = await this.redis.get(`webhook:ps:${reference}`);
       if (alreadyDone) return;
       await this.redis.set(`webhook:ps:${reference}`, '1', 86400);
-      await this.handleSuccessfulPayment(reference, id.toString(), PaymentProvider.PAYSTACK, event.data).catch(e =>
-        this.logger.error('Error processing Paystack webhook:', e.message),
-      );
+
+      if (metadata?.subscriptionInvoiceId) {
+        await this.subscriptions.handleWebhookSuccess(metadata.subscriptionInvoiceId, id.toString(), event.data)
+          .catch(e => this.logger.error('Paystack subscription webhook error:', e.message));
+      } else {
+        await this.handleSuccessfulPayment(reference, id.toString(), PaymentProvider.PAYSTACK, event.data)
+          .catch(e => this.logger.error('Paystack webhook error:', e.message));
+      }
     }
 
     if (event.event === 'refund.processed') {
@@ -134,7 +286,7 @@ export class PaymentsService {
     }
   }
 
-  // ── Stripe ────────────────────────────────────────────────
+  // ── Stripe ────────────────────────────────────────────────────────────────
   private async initStripe(
     payment: Payment, email: string, amount: number, currency: string, reference: string,
   ) {
@@ -170,9 +322,14 @@ export class PaymentsService {
       const alreadyDone = await this.redis.get(`webhook:stripe:${ref}`);
       if (alreadyDone) return;
       await this.redis.set(`webhook:stripe:${ref}`, '1', 86400);
-      await this.handleSuccessfulPayment(ref, intent.id, PaymentProvider.STRIPE, intent).catch(e =>
-        this.logger.error('Error processing Stripe webhook:', e.message),
-      );
+
+      if (intent.metadata?.subscriptionInvoiceId) {
+        await this.subscriptions.handleWebhookSuccess(intent.metadata.subscriptionInvoiceId, intent.id, intent)
+          .catch(e => this.logger.error('Stripe subscription webhook error:', e.message));
+      } else {
+        await this.handleSuccessfulPayment(ref, intent.id, PaymentProvider.STRIPE, intent)
+          .catch(e => this.logger.error('Stripe webhook error:', e.message));
+      }
     }
 
     if (event.type === 'charge.refunded') {
@@ -180,7 +337,7 @@ export class PaymentsService {
     }
   }
 
-  // ── Shared success handler ────────────────────────────────
+  // ── Shared success handler ────────────────────────────────────────────────
   private async handleSuccessfulPayment(
     reference: string,
     gatewayTxId: string,
@@ -189,7 +346,7 @@ export class PaymentsService {
   ): Promise<Payment> {
     const payment = await this.repo.findOne({ where: { reference } });
     if (!payment) throw new NotFoundException(`Payment not found: ${reference}`);
-    if (payment.status === TxStatus.SUCCESS) return payment; // idempotent
+    if (payment.status === TxStatus.SUCCESS) return payment;
 
     await this.repo.update(payment.id, {
       status: TxStatus.SUCCESS,
@@ -198,23 +355,13 @@ export class PaymentsService {
       metadata,
     });
 
-    // Update order
     const order = await this.orders.markPaid(payment.orderId, reference, provider);
-
-    // Notify
-    const notifPayload = {
-      id: payment.id,
-      amount: payment.amount,
-      orderNumber: order.orderNumber,
-      reference,
-    };
-    // We'd fetch user here in production — simplified for now
-    this.logger.log(`Payment ${reference} successful for order ${order.orderNumber}`);
+    this.logger.log(`Payment ${reference} (${provider}) successful for order ${order.orderNumber}`);
 
     return { ...payment, status: TxStatus.SUCCESS };
   }
 
-  // ── Refund ────────────────────────────────────────────────
+  // ── Refund ────────────────────────────────────────────────────────────────
   async refund(paymentId: string, amount?: number, reason?: string): Promise<Payment> {
     const payment = await this.repo.findOne({ where: { id: paymentId } });
     if (!payment) throw new NotFoundException('Payment not found');
@@ -239,6 +386,7 @@ export class PaymentsService {
         }),
       });
     }
+    // Flutterwave and Paddle refunds can be added later
 
     await this.repo.update(paymentId, {
       status: TxStatus.REFUNDED,

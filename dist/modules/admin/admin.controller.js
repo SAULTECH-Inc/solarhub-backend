@@ -31,6 +31,9 @@ let AdminController = class AdminController {
         this.products = products;
         this.orders = orders;
     }
+    seedSuperAdmin(key, email, password) {
+        return this.svc.seedSuperAdmin(key, email, password);
+    }
     getDashboard() { return this.svc.getDashboard(); }
     getHealth() { return this.svc.getSystemHealth(); }
     globalSearch(q) { return this.svc.globalSearch(q); }
@@ -61,6 +64,19 @@ let AdminController = class AdminController {
     orderStats() { return this.orders.getOrderStats(); }
 };
 exports.AdminController = AdminController;
+__decorate([
+    (0, decorators_1.Public)(),
+    (0, common_1.Post)('seed'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Promote or create a super-admin account (requires ADMIN_SEED_KEY header)' }),
+    openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
+    __param(0, (0, common_1.Headers)('x-seed-key')),
+    __param(1, (0, common_1.Body)('email')),
+    __param(2, (0, common_1.Body)('password')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "seedSuperAdmin", null);
 __decorate([
     (0, common_1.Get)('dashboard'),
     (0, swagger_1.ApiOperation)({ summary: 'Admin dashboard stats' }),

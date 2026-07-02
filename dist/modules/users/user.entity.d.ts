@@ -1,7 +1,8 @@
 export declare enum UserRole {
     BUYER = "buyer",
     SELLER = "seller",
-    ADMIN = "admin"
+    ADMIN = "admin",
+    SUPER_ADMIN = "super_admin"
 }
 export declare enum AuthProvider {
     LOCAL = "local",
@@ -22,6 +23,7 @@ export declare class User {
     phone: string;
     avatar: string;
     role: UserRole;
+    isSuperAdmin: boolean;
     provider: AuthProvider;
     googleId: string;
     status: UserStatus;

@@ -11,6 +11,37 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { TransformInterceptor } from '@common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 
+function swaggerUiHtml() {
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Solar Maket API</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui.css">
+    <style>body{margin:0}.topbar{display:none}</style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-standalone-preset.js"></script>
+    <script>
+      window.onload = function() {
+        SwaggerUIBundle({
+          url: '/docs-json',
+          dom_id: '#swagger-ui',
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          layout: 'StandaloneLayout',
+          persistAuthorization: true,
+          deepLinking: true,
+          tryItOutEnabled: true,
+        });
+      };
+    </script>
+  </body>
+</html>`;
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
@@ -24,7 +55,19 @@ async function bootstrap() {
   const origins = config.get<string[]>('app.allowedOrigins', ['http://localhost:5173', 'http://localhost:3002', 'http://localhost:3001', 'http://localhost:3000']);
 
   // ── Security ──────────────────────────────────────────────
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        styleSrc:    ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        imgSrc:      ["'self'", 'data:', 'blob:'],
+        connectSrc:  ["'self'"],
+        fontSrc:     ["'self'", 'data:', 'https://unpkg.com'],
+      },
+    },
+  }));
   app.use(compression());
 
   // ── CORS ──────────────────────────────────────────────────
@@ -63,10 +106,10 @@ async function bootstrap() {
   );
 
   // ── Swagger ───────────────────────────────────────────────
-  if (config.get('app.nodeEnv') !== 'production') {
+  if (process.env.SWAGGER_ENABLED === 'true') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('SolarHub API')
-      .setDescription('SolarHub Nigeria — Solar Marketplace Backend API')
+      .setTitle('Solar Maket API')
+      .setDescription('Solar Maket Nigeria — Solar Marketplace Backend API')
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
       .addTag('Auth', 'Authentication & OAuth')
@@ -88,14 +131,18 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('docs', app, document, {
-      swaggerOptions: { persistAuthorization: true },
-    });
+
+    // Bypass NestJS static-file middleware (missing from serverless bundles).
+    // Register raw Express routes: /docs-json for the spec, /docs for CDN-hosted UI.
+    const expressApp = app.getHttpAdapter().getInstance() as any;
+    expressApp.get('/docs-json', (_req: any, res: any) => res.json(document));
+    expressApp.get('/docs', (_req: any, res: any) => res.send(swaggerUiHtml()));
+
     logger.log(`Swagger docs → http://localhost:${port}/docs`);
   }
 
   await app.listen(port);
-  logger.log(`🌞 SolarHub API running on http://localhost:${port}/${prefix}`);
+  logger.log(`🌞 Solar Maket API running on http://localhost:${port}/${prefix}`);
   logger.log(`📦 Environment: ${config.get('app.nodeEnv')}`);
 }
 

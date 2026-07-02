@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const schedule_1 = require("@nestjs/schedule");
+const bcrypt = require("bcryptjs");
 const user_entity_1 = require("../users/user.entity");
 const product_entity_1 = require("../products/product.entity");
 const order_entity_1 = require("../orders/order.entity");
@@ -159,6 +160,38 @@ let AdminService = AdminService_1 = class AdminService {
             .where('refreshTokenExpiry < :now', { now: new Date() })
             .execute();
         this.logger.log('Expired refresh tokens cleaned');
+    }
+    async seedSuperAdmin(seedKey, email, password) {
+        const expectedKey = process.env.ADMIN_SEED_KEY;
+        if (!expectedKey || seedKey !== expectedKey) {
+            throw new common_1.ForbiddenException('Invalid seed key');
+        }
+        let user = await this.userRepo.findOne({ where: { email } });
+        if (user) {
+            await this.userRepo.update(user.id, {
+                role: user_entity_1.UserRole.SUPER_ADMIN,
+                isSuperAdmin: true,
+                status: user_entity_1.UserStatus.ACTIVE,
+                emailVerified: true,
+            });
+            await this.redis.del(`user:${user.id}`);
+            return { created: false, email, message: `${email} promoted to super_admin` };
+        }
+        if (!password) {
+            throw new common_1.NotFoundException('User not found. Provide a password to create the account.');
+        }
+        const newUser = this.userRepo.create({
+            email,
+            firstName: email.split('@')[0],
+            lastName: 'Admin',
+            password: await bcrypt.hash(password, 12),
+            role: user_entity_1.UserRole.SUPER_ADMIN,
+            isSuperAdmin: true,
+            status: user_entity_1.UserStatus.ACTIVE,
+            emailVerified: true,
+        });
+        await this.userRepo.save(newUser);
+        return { created: true, email, message: `Super admin account created for ${email}` };
     }
     async globalSearch(query) {
         const q = `%${query}%`;

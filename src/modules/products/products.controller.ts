@@ -108,6 +108,14 @@ export class ProductsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('seller/edit-lock/:productId')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Check if a product is locked for editing' })
+  getEditLock(@Param('productId') productId: string, @CurrentUser() user: any) {
+    return this.svc.getEditLockStatus(productId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('seller/my-products')
   @ApiBearerAuth('JWT')
   getMyProducts(
@@ -116,6 +124,14 @@ export class ProductsController {
     @Query('limit') limit = 20,
   ) {
     return this.svc.getSellerProducts(uid, +page, +limit);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('seller/listing-quota')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get current seller listing quota usage' })
+  getListingQuota(@CurrentUser() user: any) {
+    return this.svc.getListingQuota(user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

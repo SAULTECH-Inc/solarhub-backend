@@ -1,5 +1,5 @@
-import { Controller, Get, Patch, Body, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Patch, Post, Delete, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators';
@@ -29,5 +29,21 @@ export class NotificationsController {
   @Patch('mark-all-read')
   markAllRead(@CurrentUser('id') uid: string) {
     return this.svc.markAllRead(uid);
+  }
+
+  @Post('register-token')
+  @ApiOperation({ summary: 'Register a device push token (FCM)' })
+  registerToken(
+    @CurrentUser('id') uid: string,
+    @Body('token') token: string,
+    @Body('platform') platform: string,
+  ) {
+    return this.svc.registerPushToken(uid, token, platform || 'web').then(() => ({ ok: true }));
+  }
+
+  @Delete('unregister-token')
+  @ApiOperation({ summary: 'Unregister a device push token' })
+  unregisterToken(@CurrentUser('id') uid: string, @Body('token') token: string) {
+    return this.svc.unregisterPushToken(uid, token).then(() => ({ ok: true }));
   }
 }

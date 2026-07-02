@@ -26,6 +26,8 @@ let RolesGuard = class RolesGuard {
         const { user } = ctx.switchToHttp().getRequest();
         if (!user)
             throw new common_1.ForbiddenException('Access denied');
+        if (user.role === 'super_admin')
+            return true;
         if (!required.includes(user.role)) {
             throw new common_1.ForbiddenException(`Requires role: ${required.join(' or ')}`);
         }

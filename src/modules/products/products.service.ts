@@ -6,9 +6,20 @@ import { Repository } from 'typeorm';
 import { Product, ProductStatus } from './product.entity';
 import { Category } from '../categories/category.entity';
 import { User, UserRole } from '../users/user.entity';
+import { CartItem } from '../cart/cart.entity';
+import { OrderItem } from '../orders/order.entity';
 import { RedisService } from '../redis/redis.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { paginate, paginationToSkipTake, slugify } from '../../common/utils/pagination.util';
+
+/** Max active/pending listings allowed per subscription tier */
+export const LISTING_LIMITS: Record<string, number> = {
+  free:         5,
+  basic:        20,
+  pro:          50,
+  pro_engineer: 50,
+  enterprise:   Infinity,
+};
 
 export interface ProductFilters {
   category?: string;
@@ -28,8 +39,10 @@ export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
 
   constructor(
-    @InjectRepository(Product)  private readonly repo: Repository<Product>,
-    @InjectRepository(Category) private readonly catRepo: Repository<Category>,
+    @InjectRepository(Product)   private readonly repo: Repository<Product>,
+    @InjectRepository(Category)  private readonly catRepo: Repository<Category>,
+    @InjectRepository(CartItem)  private readonly cartItemRepo: Repository<CartItem>,
+    @InjectRepository(OrderItem) private readonly orderItemRepo: Repository<OrderItem>,
     private readonly redis: RedisService,
     private readonly uploads: UploadsService,
   ) {}
@@ -43,14 +56,39 @@ export class ProductsService {
       throw new ForbiddenException('Please complete your seller/company profile before listing products');
     }
 
-    // ── Paywall Enforcement ───────────────────────────────────
+    // ── Subscription Enforcement ──────────────────────────────
     if (seller.role !== UserRole.ADMIN) {
       const now = new Date();
-      if (seller.subscriptionStatus === 'trialing' && seller.trialEndsAt && new Date(seller.trialEndsAt) < now) {
-        throw new ForbiddenException('Your 30-day free trial has expired. Please upgrade your subscription to continue listing products.');
+      const status = seller.subscriptionStatus;
+
+      // Blocked statuses — no listing allowed regardless of tier
+      if (status === 'past_due') {
+        throw new ForbiddenException('Your subscription payment is overdue. Please update your billing to continue listing products.');
       }
-      if (seller.subscriptionStatus === 'canceled' || seller.subscriptionStatus === 'past_due') {
-        throw new ForbiddenException('Your subscription is inactive. Please update your billing to list products.');
+      if (status === 'canceled') {
+        throw new ForbiddenException('Your subscription has been cancelled. Please resubscribe to list products.');
+      }
+      if (status === 'trialing' && seller.trialEndsAt && new Date(seller.trialEndsAt) < now) {
+        throw new ForbiddenException('Your free trial has expired. Please subscribe to continue listing products.');
+      }
+
+      // Tier listing cap — count non-deleted listings
+      const tier = seller.subscriptionTier || 'free';
+      const limit = LISTING_LIMITS[tier] ?? LISTING_LIMITS.free;
+
+      if (isFinite(limit)) {
+        const count = await this.repo
+          .createQueryBuilder('p')
+          .where('p.sellerId = :sid', { sid: seller.id })
+          .andWhere('p.status != :del', { del: ProductStatus.DELETED })
+          .getCount();
+
+        if (count >= limit) {
+          throw new ForbiddenException(
+            `Your ${tier} plan allows up to ${limit} listing${limit === 1 ? '' : 's'}. ` +
+            `You have ${count}. Please upgrade to add more products.`,
+          );
+        }
       }
     }
 
@@ -68,13 +106,16 @@ export class ProductsService {
       slug = `${baseSlug}-${i++}`;
     }
 
+    // Verified sellers publish immediately; unverified go to PENDING for review
+    const initialStatus = seller.sellerVerified ? ProductStatus.ACTIVE : ProductStatus.PENDING;
+
     const product = this.repo.create({
       ...rest,
       slug,
       sellerId: seller.id,
       sellerCity:  seller.storeCity,
       sellerState: seller.storeState,
-      status: ProductStatus.PENDING,
+      status: initialStatus,
       images: rest.images || [],
       paymentTerms: rest.paymentTerms || ['escrow'],
     });
@@ -196,6 +237,25 @@ export class ProductsService {
     return paginate(data, total, page, limit);
   }
 
+  // ── Seller quota ──────────────────────────────────────────
+  async getListingQuota(seller: User) {
+    const tier = seller.subscriptionTier || 'free';
+    const limit = LISTING_LIMITS[tier] ?? LISTING_LIMITS.free;
+    const used = await this.repo
+      .createQueryBuilder('p')
+      .where('p.sellerId = :sid', { sid: seller.id })
+      .andWhere('p.status != :del', { del: ProductStatus.DELETED })
+      .getCount();
+
+    return {
+      tier,
+      used,
+      limit: isFinite(limit) ? limit : null,   // null = unlimited
+      remaining: isFinite(limit) ? Math.max(0, limit - used) : null,
+      canPost: isFinite(limit) ? used < limit : true,
+    };
+  }
+
   // ── Stats / analytics ─────────────────────────────────────
   async getStats() {
     const [total, active, pending] = await Promise.all([
@@ -225,6 +285,41 @@ export class ProductsService {
     await this.repo.update(id, { status: ProductStatus.ACTIVE });
     await this.redis.del(`product:${id}`);
     return this.findById(id);
+  }
+
+  // ── Edit lock check ───────────────────────────────────────
+  async getEditLockStatus(productId: string): Promise<{ locked: boolean; reason?: string }> {
+    // Locked if in an active order (not yet cancelled/refunded/delivered)
+    const inActiveOrder = await this.orderItemRepo
+      .createQueryBuilder('oi')
+      .innerJoin('oi.order', 'o')
+      .where('oi.productId = :pid', { pid: productId })
+      .andWhere('o.status NOT IN (:...finalStatuses)', {
+        finalStatuses: ['cancelled', 'refunded', 'delivered'],
+      })
+      .getCount();
+
+    if (inActiveOrder > 0) {
+      return { locked: true, reason: 'This product is part of an active order and cannot be edited until the order is completed.' };
+    }
+
+    // Locked if added to any cart today (same calendar day)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const inCartToday = await this.cartItemRepo
+      .createQueryBuilder('ci')
+      .where('ci.productId = :pid', { pid: productId })
+      .andWhere('ci.createdAt BETWEEN :start AND :end', { start: todayStart, end: todayEnd })
+      .getCount();
+
+    if (inCartToday > 0) {
+      return { locked: true, reason: 'A customer added this product to their cart today. You can edit it tomorrow.' };
+    }
+
+    return { locked: false };
   }
 
   private async invalidateProductCache(): Promise<void> {

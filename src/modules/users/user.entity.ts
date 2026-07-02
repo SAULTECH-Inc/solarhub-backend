@@ -5,7 +5,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { Exclude } from 'class-transformer';
 
-export enum UserRole { BUYER = 'buyer', SELLER = 'seller', ADMIN = 'admin' }
+export enum UserRole { BUYER = 'buyer', SELLER = 'seller', ADMIN = 'admin', SUPER_ADMIN = 'super_admin' }
 export enum AuthProvider { LOCAL = 'local', GOOGLE = 'google' }
 export enum UserStatus { ACTIVE = 'active', INACTIVE = 'inactive', SUSPENDED = 'suspended', PENDING = 'pending' }
 
@@ -36,6 +36,9 @@ export class User {
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.BUYER })
   role: UserRole;
+
+  @Column({ default: false })
+  isSuperAdmin: boolean;
 
   @Column({ type: 'enum', enum: AuthProvider, default: AuthProvider.LOCAL })
   provider: AuthProvider;
@@ -73,6 +76,10 @@ export class User {
   /** User has completed engineer onboarding and appears in engineer marketplace */
   @Column({ default: false })
   isEngineer: boolean;
+
+  /** User has registered as a logistics provider */
+  @Column({ default: false })
+  isLogistics: boolean;
 
   // ── Seller / Company profile ──────────────────────────────
   @Column({ nullable: true, length: 200 })
@@ -155,6 +162,15 @@ export class User {
   // Notification preferences
   @Column({ type: 'jsonb', default: { email: true, sms: true, push: true } })
   notificationPrefs: { email: boolean; sms: boolean; push: boolean };
+
+  /** Public contact / social links (shown on seller / engineer profile pages) */
+  @Column({ type: 'jsonb', nullable: true })
+  socialLinks: {
+    whatsapp?:  string;
+    instagram?: string;
+    facebook?:  string;
+    twitter?:   string;
+  };
 
   // Address book
   @Column({ type: 'jsonb', default: [] })

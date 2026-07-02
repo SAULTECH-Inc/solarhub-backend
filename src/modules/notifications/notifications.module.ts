@@ -4,15 +4,17 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { BullModule } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationsService } from './notifications.service';
 import { EmailProcessor } from './email.processor';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Notification } from './notification.entity';
 import { NotificationsController } from './notifications.controller';
+import { Notification } from './notification.entity';
+import { PushToken } from './push-token.entity';
+import { FirebaseAdminService } from './firebase-admin.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification]),
+    TypeOrmModule.forFeature([Notification, PushToken]),
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
@@ -34,7 +36,7 @@ import { NotificationsController } from './notifications.controller';
     }),
     BullModule.registerQueue({ name: 'email' }),
   ],
-  providers: [NotificationsService, EmailProcessor],
+  providers: [NotificationsService, EmailProcessor, FirebaseAdminService],
   controllers: [NotificationsController],
   exports: [NotificationsService],
 })

@@ -17,13 +17,17 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post('initiate')
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Initiate a payment (Paystack for NGN/USD/GHS, Stripe for USD/CNY)' })
+  @ApiOperation({ summary: 'Initiate payment — routes to Flutterwave (African), Paddle (international), or Stripe (CNY)' })
   initiatePayment(
     @CurrentUser() user: any,
-    @Body() body: { orderId: string; currency: string; method?: string },
+    @Body() body: { orderId: string; currency: string; method?: string; customerName?: string },
   ) {
-    return this.svc.initiatePayment(body.orderId, user.id, body.currency, user.email, body.method);
+    return this.svc.initiatePayment(
+      body.orderId, user.id, body.currency, user.email, body.method, body.customerName,
+    );
   }
+
+  // ── Verify ────────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Get('verify/paystack/:reference')
@@ -32,6 +36,19 @@ export class PaymentsController {
   verifyPaystack(@Param('reference') ref: string) {
     return this.svc.verifyPaystack(ref);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('verify/flutterwave')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Verify a Flutterwave payment' })
+  verifyFlutterwave(
+    @Query('txId') txId: string,
+    @Query('txRef') txRef: string,
+  ) {
+    return this.svc.verifyFlutterwave(txId, txRef);
+  }
+
+  // ── Order / Refund ────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Get('order/:orderId')
@@ -43,7 +60,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @Post(':id/refund')
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Refund a payment (admin / seller)' })
+  @ApiOperation({ summary: 'Refund a payment' })
   refund(
     @Param('id') id: string,
     @Body('amount') amount?: number,
@@ -52,11 +69,12 @@ export class PaymentsController {
     return this.svc.refund(id, amount, reason);
   }
 
-  // ── Webhooks (no auth — signature verified internally) ────
+  // ── Webhooks (no auth — signature verified internally) ────────────────────
+
   @Public()
   @Post('webhook/paystack')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Paystack webhook endpoint' })
+  @ApiOperation({ summary: 'Paystack webhook' })
   paystackWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('x-paystack-signature') sig: string,
@@ -67,12 +85,34 @@ export class PaymentsController {
   @Public()
   @Post('webhook/stripe')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Stripe webhook endpoint' })
+  @ApiOperation({ summary: 'Stripe webhook' })
   stripeWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') sig: string,
   ) {
     return this.svc.handleStripeWebhook(req.rawBody, sig);
+  }
+
+  @Public()
+  @Post('webhook/flutterwave')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Flutterwave webhook' })
+  flutterwaveWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('verif-hash') sig: string,
+  ) {
+    return this.svc.handleFlutterwaveWebhook(req.rawBody, sig);
+  }
+
+  @Public()
+  @Post('webhook/paddle')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Paddle webhook' })
+  paddleWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('paddle-signature') sig: string,
+  ) {
+    return this.svc.handlePaddleWebhook(req.rawBody, sig);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

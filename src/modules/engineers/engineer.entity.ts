@@ -101,6 +101,15 @@ export class Engineer {
   @Column({ default: true })
   availableForHire: boolean;
 
+  /** Public contact / social links */
+  @Column({ type: 'jsonb', nullable: true })
+  socialLinks: {
+    whatsapp?:  string; // phone with country code, no +
+    instagram?: string; // handle without @
+    facebook?:  string; // handle or profile url
+    twitter?:   string; // handle without @
+  };
+
   // ── Status & Reviews ──────────────────────────────────────
   @Column({ type: 'enum', enum: EngineerStatus, default: EngineerStatus.ACTIVE })
   status: EngineerStatus;

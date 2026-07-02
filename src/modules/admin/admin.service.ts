@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as bcrypt from 'bcryptjs';
 import { User, UserRole, UserStatus } from '../users/user.entity';
 import { Product, ProductStatus } from '../products/product.entity';
 import { Order, OrderStatus, PaymentStatus } from '../orders/order.entity';
@@ -212,6 +213,48 @@ export class AdminService {
       .where('refreshTokenExpiry < :now', { now: new Date() })
       .execute();
     this.logger.log('Expired refresh tokens cleaned');
+  }
+
+  // ── Super-admin seed ──────────────────────────────────────
+  async seedSuperAdmin(
+    seedKey: string,
+    email: string,
+    password?: string,
+  ): Promise<{ created: boolean; email: string; message: string }> {
+    const expectedKey = process.env.ADMIN_SEED_KEY;
+    if (!expectedKey || seedKey !== expectedKey) {
+      throw new ForbiddenException('Invalid seed key');
+    }
+
+    let user = await this.userRepo.findOne({ where: { email } });
+
+    if (user) {
+      await this.userRepo.update(user.id, {
+        role:          UserRole.SUPER_ADMIN,
+        isSuperAdmin:  true,
+        status:        UserStatus.ACTIVE,
+        emailVerified: true,
+      });
+      await this.redis.del(`user:${user.id}`);
+      return { created: false, email, message: `${email} promoted to super_admin` };
+    }
+
+    if (!password) {
+      throw new NotFoundException('User not found. Provide a password to create the account.');
+    }
+
+    const newUser = this.userRepo.create({
+      email,
+      firstName:     email.split('@')[0],
+      lastName:      'Admin',
+      password:      await bcrypt.hash(password, 12),
+      role:          UserRole.SUPER_ADMIN,
+      isSuperAdmin:  true,
+      status:        UserStatus.ACTIVE,
+      emailVerified: true,
+    });
+    await this.userRepo.save(newUser);
+    return { created: true, email, message: `Super admin account created for ${email}` };
   }
 
   // ── Search across entities ─────────────────────────────────

@@ -9,6 +9,11 @@ export declare class AdminController {
     private readonly products;
     private readonly orders;
     constructor(svc: AdminService, users: UsersService, products: ProductsService, orders: OrdersService);
+    seedSuperAdmin(key: string, email: string, password?: string): Promise<{
+        created: boolean;
+        email: string;
+        message: string;
+    }>;
     getDashboard(): Promise<import("./admin.service").DashboardStats>;
     getHealth(): Promise<{
         status: string;

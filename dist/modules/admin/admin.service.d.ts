@@ -72,6 +72,11 @@ export declare class AdminService {
     }>;
     clearDashboardCache(): Promise<void>;
     cleanExpiredSessions(): Promise<void>;
+    seedSuperAdmin(seedKey: string, email: string, password?: string): Promise<{
+        created: boolean;
+        email: string;
+        message: string;
+    }>;
     globalSearch(query: string): Promise<{
         users: User[];
         products: Product[];

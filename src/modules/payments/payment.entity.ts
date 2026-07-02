@@ -3,7 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, Index,
 } from 'typeorm';
 
-export enum PaymentProvider { PAYSTACK='paystack', STRIPE='stripe' }
+export enum PaymentProvider { PAYSTACK='paystack', STRIPE='stripe', FLUTTERWAVE='flutterwave', PADDLE='paddle' }
 export enum PaymentMethod   { CARD='card', TRANSFER='bank_transfer', USSD='ussd', MOBILE_MONEY='mobile_money', CASH='cash' }
 export enum TxStatus        { PENDING='pending', SUCCESS='success', FAILED='failed', REFUNDED='refunded', CANCELLED='cancelled' }
 

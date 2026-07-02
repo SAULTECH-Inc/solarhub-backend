@@ -13,6 +13,8 @@ export class RolesGuard implements CanActivate {
     if (!required?.length) return true;
     const { user } = ctx.switchToHttp().getRequest();
     if (!user) throw new ForbiddenException('Access denied');
+    // super_admin passes every role check
+    if (user.role === 'super_admin') return true;
     if (!required.includes(user.role)) {
       throw new ForbiddenException(`Requires role: ${required.join(' or ')}`);
     }

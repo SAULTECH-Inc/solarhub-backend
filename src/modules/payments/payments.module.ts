@@ -5,12 +5,14 @@ import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { OrdersModule } from '../orders/orders.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment]),
     OrdersModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
   providers: [PaymentsService],
   controllers: [PaymentsController],
