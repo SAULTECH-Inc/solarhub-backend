@@ -167,12 +167,15 @@ let AdminService = AdminService_1 = class AdminService {
             throw new common_1.ForbiddenException('Invalid seed key');
         }
         let user = await this.userRepo.findOne({ where: { email } });
+        const hashedPassword = password ? await bcrypt.hash(password, 12) : undefined;
         if (user) {
             await this.userRepo.update(user.id, {
                 role: user_entity_1.UserRole.SUPER_ADMIN,
                 isSuperAdmin: true,
                 status: user_entity_1.UserStatus.ACTIVE,
                 emailVerified: true,
+                provider: user_entity_1.AuthProvider.LOCAL,
+                ...(hashedPassword && { password: hashedPassword }),
             });
             await this.redis.del(`user:${user.id}`);
             return { created: false, email, message: `${email} promoted to super_admin` };
@@ -184,11 +187,12 @@ let AdminService = AdminService_1 = class AdminService {
             email,
             firstName: email.split('@')[0],
             lastName: 'Admin',
-            password: await bcrypt.hash(password, 12),
+            password: hashedPassword,
             role: user_entity_1.UserRole.SUPER_ADMIN,
             isSuperAdmin: true,
             status: user_entity_1.UserStatus.ACTIVE,
             emailVerified: true,
+            provider: user_entity_1.AuthProvider.LOCAL,
         });
         await this.userRepo.save(newUser);
         return { created: true, email, message: `Super admin account created for ${email}` };

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as bcrypt from 'bcryptjs';
-import { User, UserRole, UserStatus } from '../users/user.entity';
+import { User, UserRole, UserStatus, AuthProvider } from '../users/user.entity';
 import { Product, ProductStatus } from '../products/product.entity';
 import { Order, OrderStatus, PaymentStatus } from '../orders/order.entity';
 import { Payment, TxStatus } from '../payments/payment.entity';
@@ -228,12 +228,16 @@ export class AdminService {
 
     let user = await this.userRepo.findOne({ where: { email } });
 
+    const hashedPassword = password ? await bcrypt.hash(password, 12) : undefined;
+
     if (user) {
       await this.userRepo.update(user.id, {
         role:          UserRole.SUPER_ADMIN,
         isSuperAdmin:  true,
         status:        UserStatus.ACTIVE,
         emailVerified: true,
+        provider:      AuthProvider.LOCAL,          // allow email+password login
+        ...(hashedPassword && { password: hashedPassword }),
       });
       await this.redis.del(`user:${user.id}`);
       return { created: false, email, message: `${email} promoted to super_admin` };
@@ -247,11 +251,12 @@ export class AdminService {
       email,
       firstName:     email.split('@')[0],
       lastName:      'Admin',
-      password:      await bcrypt.hash(password, 12),
+      password:      hashedPassword,
       role:          UserRole.SUPER_ADMIN,
       isSuperAdmin:  true,
       status:        UserStatus.ACTIVE,
       emailVerified: true,
+      provider:      AuthProvider.LOCAL,
     });
     await this.userRepo.save(newUser);
     return { created: true, email, message: `Super admin account created for ${email}` };
