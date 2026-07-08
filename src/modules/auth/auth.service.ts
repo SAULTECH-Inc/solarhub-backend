@@ -41,10 +41,12 @@ export class AuthService {
     });
     const saved = await this.userRepo.save(user);
 
-    // Send verification email
+    // Send verification email (non-fatal — registration succeeds even if email fails)
     const otp = generateOtp();
     await this.redis.setOtp(saved.email, otp, 6000);
-    await this.notif.sendEmailVerification(saved, otp);
+    this.notif.sendEmailVerification(saved, otp).catch(e =>
+      this.logger.error(`Verification email failed for ${saved.email}: ${e.message}`),
+    );
 
     this.logger.log(`New user registered: ${saved.email} (${saved.role})`);
     return { message: 'Registration successful. Please verify your email.' };

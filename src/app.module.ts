@@ -69,7 +69,11 @@ import { DisputesModule }      from '@modules/disputes/disputes.module';
         ssl: cfg.get('database.host') !== 'localhost'
           ? { rejectUnauthorized: false }
           : false,
-        extra: { max: 20 },         // connection pool
+        extra: {
+          max: 5,                    // serverless: small pool per instance
+          idleTimeoutMillis: 10000,  // release idle connections quickly
+          connectionTimeoutMillis: 5000,
+        },
       }),
     }),
 

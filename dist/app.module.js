@@ -71,7 +71,11 @@ exports.AppModule = AppModule = __decorate([
                     ssl: cfg.get('database.host') !== 'localhost'
                         ? { rejectUnauthorized: false }
                         : false,
-                    extra: { max: 20 },
+                    extra: {
+                        max: 5,
+                        idleTimeoutMillis: 10000,
+                        connectionTimeoutMillis: 5000,
+                    },
                 }),
             }),
             bull_1.BullModule.forRootAsync({
