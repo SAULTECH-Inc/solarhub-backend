@@ -12,14 +12,25 @@ import { RedisService, REDIS_CLIENT } from './redis.service';
       provide: REDIS_CLIENT,
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => {
-        const client = new Redis({
-          host:     cfg.get('redis.host'),
-          port:     cfg.get<number>('redis.port'),
-          password: cfg.get('redis.password') || undefined,
-          lazyConnect: false,
-          maxRetriesPerRequest: 10,
-          enableReadyCheck: true,
-        });
+        const url = cfg.get<string>('redis.url');
+        const client = url
+          ? new Redis(url, {
+              tls: { rejectUnauthorized: false },
+              maxRetriesPerRequest: null,
+              enableReadyCheck: false,
+              connectTimeout: 10000,
+              keepAlive: 10000,
+            })
+          : new Redis({
+              host:     cfg.get('redis.host'),
+              port:     cfg.get<number>('redis.port'),
+              password: cfg.get('redis.password') || undefined,
+              tls: { rejectUnauthorized: false },
+              maxRetriesPerRequest: null,
+              enableReadyCheck: false,
+              connectTimeout: 10000,
+              keepAlive: 10000,
+            });
         client.on('connect',     () => console.log('✅ Redis connected'));
         client.on('error', (err) => console.error('❌ Redis error:', err.message));
         return client;

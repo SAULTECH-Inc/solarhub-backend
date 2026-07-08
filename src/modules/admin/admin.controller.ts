@@ -50,6 +50,15 @@ export class AdminController {
   @Get('search')
   globalSearch(@Query('q') q: string) { return this.svc.globalSearch(q); }
 
+  @Get('analytics')
+  @ApiOperation({ summary: 'Platform analytics for N days' })
+  getAnalytics(@Query('days') days = 30) {
+    return this.svc.getAnalytics(+days);
+  }
+
+  @Get('payments/:id')
+  getPaymentDetail(@Param('id') id: string) { return this.svc.getPaymentDetail(id); }
+
   // ── Users ─────────────────────────────────────────────────
   @Get('users')
   listUsers(
@@ -72,6 +81,11 @@ export class AdminController {
 
   @Get('users/stats')
   userStats() { return this.users.getStats(); }
+
+  @Get('users/:id')
+  getUserDetail(@Param('id') id: string) {
+    return this.svc.getUserDetail(id);
+  }
 
   // ── Products ──────────────────────────────────────────────
   @Get('products/pending')
@@ -106,8 +120,9 @@ export class AdminController {
   listOrders(
     @Query('page') p = 1, @Query('limit') l = 20,
     @Query('status') status?: string, @Query('search') search?: string,
+    @Query('paymentStatus') paymentStatus?: string,
   ) {
-    return this.orders.getAllOrders(+p, +l, status, search);
+    return this.orders.getAllOrders(+p, +l, status, search, paymentStatus);
   }
 
   @Patch('orders/:id/advance')
@@ -117,4 +132,40 @@ export class AdminController {
 
   @Get('orders/stats')
   orderStats() { return this.orders.getOrderStats(); }
+
+  @Get('orders/:id')
+  getOrderDetail(@Param('id') id: string) {
+    return this.svc.getOrderDetail(id);
+  }
+
+  // ── Fraud & Trust ─────────────────────────────────────────
+  @Get('fraud/flagged')
+  @ApiOperation({ summary: 'List flagged users' })
+  getFlaggedUsers(
+    @Query('page') p = 1,
+    @Query('limit') l = 20,
+  ) {
+    return this.svc.getFlaggedUsers(+p, +l);
+  }
+
+  @Patch('fraud/flag/:id')
+  @ApiOperation({ summary: 'Flag a user for fraud' })
+  flagUser(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.svc.flagUser(id, reason);
+  }
+
+  @Patch('fraud/unflag/:id')
+  @ApiOperation({ summary: 'Clear a fraud flag from a user' })
+  unflagUser(@Param('id') id: string) {
+    return this.svc.unflagUser(id);
+  }
+
+  @Get('fraud/payments')
+  @ApiOperation({ summary: 'List high-risk or disputed payments' })
+  getRiskyPayments(@Query('page') p = 1, @Query('limit') l = 20) {
+    return this.svc.getRiskyPayments(+p, +l);
+  }
 }

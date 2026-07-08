@@ -117,6 +117,18 @@ export class PaymentsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @Get('admin/list')
+  listAll(
+    @Query('page') p = 1, @Query('limit') l = 20,
+    @Query('status') status?: string,
+    @Query('provider') provider?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.svc.listAll(+p, +l, status, provider, search);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @Get('admin/stats')
   getStats() { return this.svc.getStats(); }
 }

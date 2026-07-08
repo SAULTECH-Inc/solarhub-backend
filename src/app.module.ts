@@ -34,6 +34,7 @@ import { RfqsModule }          from '@modules/rfqs/rfqs.module';
 import { SubscriptionsModule } from '@modules/subscriptions/subscriptions.module';
 import { LogisticsModule }     from '@modules/logistics/logistics.module';
 import { TasksModule }         from '@modules/tasks/tasks.module';
+import { DisputesModule }      from '@modules/disputes/disputes.module';
 
 @Module({
   imports: [
@@ -65,7 +66,7 @@ import { TasksModule }         from '@modules/tasks/tasks.module';
         synchronize: cfg.get<boolean>('database.sync', false),
         logging:     cfg.get<boolean>('database.logging', false),
         migrationsRun: false,
-        ssl: cfg.get('app.nodeEnv') === 'production'
+        ssl: (cfg.get('app.nodeEnv') === 'production' || cfg.get<boolean>('database.ssl'))
           ? { rejectUnauthorized: false }
           : false,
         extra: { max: 20 },         // connection pool
@@ -80,6 +81,9 @@ import { TasksModule }         from '@modules/tasks/tasks.module';
           host:     cfg.get('redis.host'),
           port:     cfg.get<number>('redis.port'),
           password: cfg.get('redis.password') || undefined,
+          tls: { rejectUnauthorized: false },
+          connectTimeout: 10000,
+          keepAlive: 10000,
         },
         defaultJobOptions: {
           attempts: 3,
@@ -126,6 +130,7 @@ import { TasksModule }         from '@modules/tasks/tasks.module';
     SubscriptionsModule,
     LogisticsModule,
     TasksModule,
+    DisputesModule,
   ],
   providers: [
     // Global rate-limit guard

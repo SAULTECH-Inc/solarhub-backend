@@ -11,7 +11,7 @@ import { OrdersService } from '../orders/orders.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RedisService } from '../redis/redis.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { toSubunit } from '@common/utils/pagination.util';
+import { toSubunit, paginate, paginationToSkipTake } from '@common/utils/pagination.util';
 
 // Currency routing
 const FLW_CURRENCIES     = ['NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'RWF'];
@@ -407,6 +407,17 @@ export class PaymentsService {
 
   async getPaymentByOrder(orderId: string): Promise<Payment[]> {
     return this.repo.find({ where: { orderId }, order: { createdAt: 'DESC' } });
+  }
+
+  async listAll(page: number, limit: number, status?: string, provider?: string, search?: string) {
+    const { skip, take } = paginationToSkipTake(page, limit);
+    const qb = this.repo.createQueryBuilder('p');
+    if (status)   qb.andWhere('p.status = :status',     { status });
+    if (provider) qb.andWhere('p.provider = :provider', { provider });
+    if (search)   qb.andWhere('p.reference ILIKE :q',   { q: `%${search}%` });
+    qb.orderBy('p.createdAt', 'DESC').skip(skip).take(take);
+    const [data, total] = await qb.getManyAndCount();
+    return paginate(data, total, page, limit);
   }
 
   async getStats() {

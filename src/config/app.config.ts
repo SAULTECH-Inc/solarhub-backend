@@ -20,9 +20,11 @@ export const dbConfig = registerAs('database', () => ({
   database: process.env.DB_NAME || 'solarhub',
   sync:     process.env.DB_SYNC === 'true',
   logging:  process.env.DB_LOGGING === 'true',
+  ssl:      process.env.DB_SSL === 'true',
 }));
 
 export const redisConfig = registerAs('redis', () => ({
+  url:      process.env.REDIS_URL || undefined,
   host:     process.env.REDIS_HOST || 'localhost',
   port:     parseInt(process.env.REDIS_PORT, 10) || 6379,
   password: process.env.REDIS_PASSWORD || undefined,
