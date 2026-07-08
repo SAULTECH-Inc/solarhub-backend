@@ -8,4 +8,7 @@ export declare class RfqsController {
     acceptBid(uid: string, bidId: string): Promise<import("./rfq.entity").RfqBid>;
     getOpenRfqs(state?: string, city?: string, p?: number, l?: number): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("./rfq.entity").Rfq>>;
     submitBid(user: User, rfqId: string, dto: any): Promise<import("./rfq.entity").RfqBid>;
+    adminListAll(p?: number, l?: number, status?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("./rfq.entity").Rfq>>;
+    adminCancel(id: string): Promise<import("./rfq.entity").Rfq>;
+    adminGetBids(rfqId: string): Promise<import("./rfq.entity").RfqBid[]>;
 }

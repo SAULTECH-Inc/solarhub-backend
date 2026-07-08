@@ -51,6 +51,9 @@ let PaymentsController = class PaymentsController {
     paddleWebhook(req, sig) {
         return this.svc.handlePaddleWebhook(req.rawBody, sig);
     }
+    listAll(p = 1, l = 20, status, provider, search) {
+        return this.svc.listAll(+p, +l, status, provider, search);
+    }
     getStats() { return this.svc.getStats(); }
 };
 exports.PaymentsController = PaymentsController;
@@ -160,6 +163,20 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "paddleWebhook", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Get)('admin/list'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('status')),
+    __param(3, (0, common_1.Query)('provider')),
+    __param(4, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, String, String, String]),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "listAll", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, decorators_1.Roles)('admin'),

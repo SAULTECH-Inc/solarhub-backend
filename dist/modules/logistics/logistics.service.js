@@ -17,6 +17,7 @@ exports.LogisticsService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const pagination_util_1 = require("../../common/utils/pagination.util");
 const logistics_entity_1 = require("./logistics.entity");
 const user_entity_1 = require("../users/user.entity");
 const delivery_entity_1 = require("../delivery/delivery.entity");
@@ -355,6 +356,25 @@ let LogisticsService = LogisticsService_1 = class LogisticsService {
         if (nextIdx <= currentIdx) {
             throw new common_1.BadRequestException(`Cannot transition from "${current}" to "${next}" — status can only move forward`);
         }
+    }
+    async adminListProviders(page, limit, status) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const where = status ? { status } : {};
+        const [data, total] = await this.providerRepo.findAndCount({
+            where,
+            order: { createdAt: 'DESC' },
+            skip, take,
+        });
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
+    async adminUpdateProviderStatus(id, status, note) {
+        const provider = await this.providerRepo.findOne({ where: { id } });
+        if (!provider)
+            throw new common_1.NotFoundException('Provider not found');
+        provider.status = status;
+        if (status === logistics_entity_1.ProviderStatus.ACTIVE)
+            provider.isVerified = true;
+        return this.providerRepo.save(provider);
     }
     defaultTrackingDescription(status) {
         const labels = {

@@ -23,6 +23,7 @@ export declare class PaymentsController {
     stripeWebhook(req: RawBodyRequest<Request>, sig: string): Promise<void>;
     flutterwaveWebhook(req: RawBodyRequest<Request>, sig: string): Promise<void>;
     paddleWebhook(req: RawBodyRequest<Request>, sig: string): Promise<void>;
+    listAll(p?: number, l?: number, status?: string, provider?: string, search?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("./payment.entity").Payment>>;
     getStats(): Promise<{
         total: number;
         success: number;

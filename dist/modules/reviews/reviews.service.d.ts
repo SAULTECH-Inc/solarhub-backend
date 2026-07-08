@@ -27,6 +27,25 @@ export declare class ReviewsService {
     }>;
     replyToReview(reviewId: string, sellerId: string, reply: string): Promise<Review>;
     markHelpful(reviewId: string): Promise<void>;
+    getAllReviews(page: number, limit: number, rating?: number, search?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<{
+        productName: any;
+        id: string;
+        productId: string;
+        userId: string;
+        orderId: string;
+        orderItemId: string;
+        rating: number;
+        title: string;
+        body: string;
+        images: string[];
+        sellerReply: string;
+        sellerRepliedAt: Date;
+        verified: boolean;
+        helpfulCount: number;
+        user: import("../users/user.entity").User;
+        createdAt: Date;
+        updatedAt: Date;
+    }>>;
     delete(reviewId: string, userId: string, role: string): Promise<void>;
     private recalculateProductRating;
 }

@@ -139,11 +139,13 @@ let OrdersService = OrdersService_1 = class OrdersService {
         const [data, total] = await qb.getManyAndCount();
         return (0, pagination_util_1.paginate)(data, total, page, limit);
     }
-    async getAllOrders(page, limit, status, search) {
+    async getAllOrders(page, limit, status, search, paymentStatus) {
         const qb = this.repo.createQueryBuilder('o')
             .leftJoinAndSelect('o.buyer', 'b');
         if (status)
-            qb.where('o.status = :status', { status });
+            qb.andWhere('o.status = :status', { status });
+        if (paymentStatus)
+            qb.andWhere('o.paymentStatus = :ps', { ps: paymentStatus });
         if (search)
             qb.andWhere('o.orderNumber ILIKE :q', { q: `%${search}%` });
         const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);

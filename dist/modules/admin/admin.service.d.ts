@@ -1,8 +1,8 @@
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Product } from '../products/product.entity';
-import { Order } from '../orders/order.entity';
-import { Payment } from '../payments/payment.entity';
+import { Order, OrderStatus, PaymentStatus } from '../orders/order.entity';
+import { Payment, TxStatus } from '../payments/payment.entity';
 import { RedisService } from '../redis/redis.service';
 export interface DashboardStats {
     users: {
@@ -76,6 +76,135 @@ export declare class AdminService {
         created: boolean;
         email: string;
         message: string;
+    }>;
+    getOrderDetail(id: string): Promise<{
+        itemsWithSeller: {
+            seller: any;
+            id: string;
+            orderId: string;
+            productId: string;
+            sellerId: string;
+            productName: string;
+            productImage: string;
+            productSlug: string;
+            unitPrice: number;
+            quantity: number;
+            subtotal: number;
+            status: OrderStatus;
+            order: Order;
+            reviewed: boolean;
+            createdAt: Date;
+        }[];
+        id: string;
+        orderNumber: string;
+        buyerId: string;
+        buyer: User;
+        items: import("../orders/order.entity").OrderItem[];
+        status: OrderStatus;
+        paymentStatus: PaymentStatus;
+        subtotal: number;
+        deliveryFee: number;
+        discount: number;
+        total: number;
+        currency: string;
+        deliveryAddress: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            address: string;
+            city: string;
+            state: string;
+            country: string;
+            landmark?: string;
+        };
+        deliveryMethod: string;
+        estimatedDelivery: Date;
+        trackingCode: string;
+        paymentReference: string;
+        paymentGateway: string;
+        paymentMethod: string;
+        statusHistory: Array<{
+            status: string;
+            timestamp: string;
+            note?: string;
+            updatedBy?: string;
+        }>;
+        cancelReason: string;
+        cancelledAt: Date;
+        deliveredAt: Date;
+        buyerNote: string;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    getUserDetail(id: string): Promise<{
+        user: User;
+        recentOrders: Order[];
+        totalOrders: number;
+        sellerStats: any;
+    }>;
+    flagUser(id: string, reason: string): Promise<User>;
+    unflagUser(id: string): Promise<User>;
+    getFlaggedUsers(page: number, limit: number): Promise<import("@common/utils/pagination.util").PaginatedResult<User>>;
+    getRiskyPayments(page: number, limit: number): Promise<import("@common/utils/pagination.util").PaginatedResult<Payment>>;
+    getPaymentDetail(id: string): Promise<{
+        user: any;
+        order: any;
+        id: string;
+        orderId: string;
+        userId: string;
+        reference: string;
+        amount: number;
+        currency: string;
+        provider: import("../payments/payment.entity").PaymentProvider;
+        method: import("../payments/payment.entity").PaymentMethod;
+        status: TxStatus;
+        gatewayTransactionId: string;
+        paidAt: Date;
+        failureReason: string;
+        metadata: Record<string, any>;
+        refundAmount: number;
+        refundedAt: Date;
+        refundReason: string;
+        isDisputed: boolean;
+        disputeId: string;
+        riskScore: number;
+        chargebackAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    getAnalytics(days: number): Promise<{
+        revenueByDay: {
+            date: any;
+            amount: number;
+        }[];
+        ordersByDay: {
+            date: any;
+            count: number;
+        }[];
+        usersByDay: {
+            date: any;
+            count: number;
+        }[];
+        ordersByStatus: {
+            name: any;
+            value: number;
+        }[];
+        categoryBreakdown: {
+            name: any;
+            value: number;
+        }[];
+        topSellers: {
+            id: any;
+            name: any;
+            revenue: number;
+            orderCount: number;
+        }[];
+        summary: {
+            periodRevenue: number;
+            periodOrders: number;
+            periodUsers: number;
+            days: number;
+        };
     }>;
     globalSearch(query: string): Promise<{
         users: User[];

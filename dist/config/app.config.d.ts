@@ -27,6 +27,7 @@ export declare const dbConfig: (() => {
     database: string;
     sync: boolean;
     logging: boolean;
+    ssl: boolean;
 }) & import("@nestjs/config").ConfigFactoryKeyHost<{
     host: string;
     port: number;
@@ -35,13 +36,16 @@ export declare const dbConfig: (() => {
     database: string;
     sync: boolean;
     logging: boolean;
+    ssl: boolean;
 }>;
 export declare const redisConfig: (() => {
+    url: string;
     host: string;
     port: number;
     password: string;
     ttl: number;
 }) & import("@nestjs/config").ConfigFactoryKeyHost<{
+    url: string;
     host: string;
     port: number;
     password: string;

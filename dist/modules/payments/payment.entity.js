@@ -37,7 +37,7 @@ var TxStatus;
 })(TxStatus || (exports.TxStatus = TxStatus = {}));
 let Payment = class Payment {
     static _OPENAPI_METADATA_FACTORY() {
-        return { id: { required: true, type: () => String }, orderId: { required: true, type: () => String }, userId: { required: true, type: () => String }, reference: { required: true, type: () => String }, amount: { required: true, type: () => Number }, currency: { required: true, type: () => String }, provider: { required: true, enum: require("./payment.entity").PaymentProvider }, method: { required: true, enum: require("./payment.entity").PaymentMethod }, status: { required: true, enum: require("./payment.entity").TxStatus }, gatewayTransactionId: { required: true, type: () => String }, paidAt: { required: true, type: () => Date }, failureReason: { required: true, type: () => String }, metadata: { required: true, type: () => Object }, refundAmount: { required: true, type: () => Number }, refundedAt: { required: true, type: () => Date }, refundReason: { required: true, type: () => String }, createdAt: { required: true, type: () => Date }, updatedAt: { required: true, type: () => Date } };
+        return { id: { required: true, type: () => String }, orderId: { required: true, type: () => String }, userId: { required: true, type: () => String }, reference: { required: true, type: () => String }, amount: { required: true, type: () => Number }, currency: { required: true, type: () => String }, provider: { required: true, enum: require("./payment.entity").PaymentProvider }, method: { required: true, enum: require("./payment.entity").PaymentMethod }, status: { required: true, enum: require("./payment.entity").TxStatus }, gatewayTransactionId: { required: true, type: () => String }, paidAt: { required: true, type: () => Date }, failureReason: { required: true, type: () => String }, metadata: { required: true, type: () => Object }, refundAmount: { required: true, type: () => Number }, refundedAt: { required: true, type: () => Date }, refundReason: { required: true, type: () => String }, isDisputed: { required: true, type: () => Boolean }, disputeId: { required: true, type: () => String }, riskScore: { required: true, type: () => Number }, chargebackAt: { required: true, type: () => Date }, createdAt: { required: true, type: () => Date }, updatedAt: { required: true, type: () => Date } };
     }
 };
 exports.Payment = Payment;
@@ -105,6 +105,22 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true, length: 500 }),
     __metadata("design:type", String)
 ], Payment.prototype, "refundReason", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Payment.prototype, "isDisputed", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "disputeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
+    __metadata("design:type", Number)
+], Payment.prototype, "riskScore", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Payment.prototype, "chargebackAt", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

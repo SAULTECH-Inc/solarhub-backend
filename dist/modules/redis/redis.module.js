@@ -22,14 +22,25 @@ exports.RedisModule = RedisModule = __decorate([
                 provide: redis_service_1.REDIS_CLIENT,
                 inject: [config_1.ConfigService],
                 useFactory: (cfg) => {
-                    const client = new ioredis_1.default({
-                        host: cfg.get('redis.host'),
-                        port: cfg.get('redis.port'),
-                        password: cfg.get('redis.password') || undefined,
-                        lazyConnect: false,
-                        maxRetriesPerRequest: 10,
-                        enableReadyCheck: true,
-                    });
+                    const url = cfg.get('redis.url');
+                    const client = url
+                        ? new ioredis_1.default(url, {
+                            tls: { rejectUnauthorized: false },
+                            maxRetriesPerRequest: null,
+                            enableReadyCheck: false,
+                            connectTimeout: 10000,
+                            keepAlive: 10000,
+                        })
+                        : new ioredis_1.default({
+                            host: cfg.get('redis.host'),
+                            port: cfg.get('redis.port'),
+                            password: cfg.get('redis.password') || undefined,
+                            tls: { rejectUnauthorized: false },
+                            maxRetriesPerRequest: null,
+                            enableReadyCheck: false,
+                            connectTimeout: 10000,
+                            keepAlive: 10000,
+                        });
                     client.on('connect', () => console.log('✅ Redis connected'));
                     client.on('error', (err) => console.error('❌ Redis error:', err.message));
                     return client;

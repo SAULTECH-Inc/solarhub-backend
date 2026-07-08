@@ -24,6 +24,7 @@ const product_entity_1 = require("../products/product.entity");
 const order_entity_1 = require("../orders/order.entity");
 const payment_entity_1 = require("../payments/payment.entity");
 const redis_service_1 = require("../redis/redis.service");
+const pagination_util_1 = require("../../common/utils/pagination.util");
 let AdminService = AdminService_1 = class AdminService {
     constructor(userRepo, prodRepo, orderRepo, payRepo, redis) {
         this.userRepo = userRepo;
@@ -196,6 +197,205 @@ let AdminService = AdminService_1 = class AdminService {
         });
         await this.userRepo.save(newUser);
         return { created: true, email, message: `Super admin account created for ${email}` };
+    }
+    async getOrderDetail(id) {
+        const order = await this.orderRepo.findOne({ where: { id }, relations: ['buyer'] });
+        if (!order)
+            throw new common_1.NotFoundException('Order not found');
+        const sellerIds = [...new Set((order.items || []).map(i => i.sellerId).filter(Boolean))];
+        let sellerMap = {};
+        if (sellerIds.length) {
+            const sellers = await this.userRepo
+                .createQueryBuilder('u')
+                .select(['u.id', 'u.firstName', 'u.lastName', 'u.storeName', 'u.email', 'u.phone'])
+                .where('u.id IN (:...ids)', { ids: sellerIds })
+                .getMany();
+            sellerMap = Object.fromEntries(sellers.map(s => [s.id, s]));
+        }
+        return {
+            ...order,
+            itemsWithSeller: (order.items || []).map(item => ({
+                ...item,
+                seller: sellerMap[item.sellerId] || null,
+            })),
+        };
+    }
+    async getUserDetail(id) {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        const [recentOrders, totalOrders] = await this.orderRepo.findAndCount({
+            where: { buyerId: id },
+            order: { createdAt: 'DESC' },
+            take: 5,
+        });
+        let sellerStats = null;
+        if (user.role === user_entity_1.UserRole.SELLER) {
+            const [productCount, revenueRow] = await Promise.all([
+                this.prodRepo.count({ where: { sellerId: id } }),
+                this.orderRepo
+                    .createQueryBuilder('o')
+                    .innerJoin('o.items', 'i', 'i.sellerId = :sid', { sid: id })
+                    .where('o.paymentStatus = :ps', { ps: order_entity_1.PaymentStatus.PAID })
+                    .select('COALESCE(SUM(i.subtotal), 0)', 'total')
+                    .getRawOne(),
+            ]);
+            sellerStats = {
+                productCount,
+                totalRevenue: Number(revenueRow?.total || 0),
+            };
+        }
+        return { user, recentOrders, totalOrders, sellerStats };
+    }
+    async flagUser(id, reason) {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        user.isFlagged = true;
+        user.flaggedAt = new Date();
+        user.flagReason = reason;
+        return this.userRepo.save(user);
+    }
+    async unflagUser(id) {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        user.isFlagged = false;
+        user.flaggedAt = null;
+        user.flagReason = null;
+        return this.userRepo.save(user);
+    }
+    async getFlaggedUsers(page, limit) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const [data, total] = await this.userRepo.findAndCount({
+            where: { isFlagged: true },
+            order: { flaggedAt: 'DESC' },
+            skip, take,
+        });
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
+    async getRiskyPayments(page, limit) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const [data, total] = await this.payRepo
+            .createQueryBuilder('p')
+            .where('p."isDisputed" = true OR p."riskScore" > 50 OR p."chargebackAt" IS NOT NULL')
+            .orderBy('p.createdAt', 'DESC')
+            .skip(skip).take(take)
+            .getManyAndCount();
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
+    async getPaymentDetail(id) {
+        const payment = await this.payRepo.findOne({ where: { id } });
+        if (!payment)
+            throw new common_1.NotFoundException('Payment not found');
+        const [user, order] = await Promise.all([
+            payment.userId
+                ? this.userRepo.findOne({
+                    where: { id: payment.userId },
+                    select: ['id', 'firstName', 'lastName', 'email', 'phone', 'role'],
+                })
+                : Promise.resolve(null),
+            payment.orderId
+                ? this.orderRepo.findOne({
+                    where: { id: payment.orderId },
+                    select: ['id', 'orderNumber', 'status', 'total', 'deliveryAddress'],
+                })
+                : Promise.resolve(null),
+        ]);
+        return { ...payment, user, order };
+    }
+    async getAnalytics(days) {
+        const from = new Date(Date.now() - days * 86400000);
+        const revenueByDay = await this.payRepo
+            .createQueryBuilder('p')
+            .where('p.status = :s AND p.createdAt >= :from', { s: payment_entity_1.TxStatus.SUCCESS, from })
+            .select("TO_CHAR(p.createdAt, 'YYYY-MM-DD')", 'date')
+            .addSelect('COALESCE(SUM(p.amount), 0)', 'amount')
+            .groupBy("TO_CHAR(p.createdAt, 'YYYY-MM-DD')")
+            .orderBy('date', 'ASC')
+            .getRawMany()
+            .then(rows => rows.map(r => ({ date: r.date, amount: Number(r.amount) })));
+        const ordersByDay = await this.orderRepo
+            .createQueryBuilder('o')
+            .where('o.createdAt >= :from', { from })
+            .select("TO_CHAR(o.createdAt, 'YYYY-MM-DD')", 'date')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy("TO_CHAR(o.createdAt, 'YYYY-MM-DD')")
+            .orderBy('date', 'ASC')
+            .getRawMany()
+            .then(rows => rows.map(r => ({ date: r.date, count: Number(r.count) })));
+        const usersByDay = await this.userRepo
+            .createQueryBuilder('u')
+            .where('u.createdAt >= :from', { from })
+            .select("TO_CHAR(u.createdAt, 'YYYY-MM-DD')", 'date')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy("TO_CHAR(u.createdAt, 'YYYY-MM-DD')")
+            .orderBy('date', 'ASC')
+            .getRawMany()
+            .then(rows => rows.map(r => ({ date: r.date, count: Number(r.count) })));
+        const ordersByStatus = await this.orderRepo
+            .createQueryBuilder('o')
+            .select('o.status', 'status')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('o.status')
+            .getRawMany()
+            .then(rows => rows.map(r => ({ name: r.status, value: Number(r.count) })));
+        const categoryBreakdown = await this.prodRepo
+            .createQueryBuilder('p')
+            .leftJoin('p.category', 'c')
+            .select("COALESCE(c.name, 'Other')", 'name')
+            .addSelect('COALESCE(SUM(p.salesCount), 0)', 'salesCount')
+            .groupBy('c.name')
+            .orderBy('COALESCE(SUM(p.salesCount), 0)', 'DESC')
+            .getRawMany()
+            .then(rows => rows.map(r => ({ name: r.name || 'Other', value: Number(r.salesCount) })));
+        const sellerRevRows = await this.orderRepo
+            .createQueryBuilder('o')
+            .innerJoin('o.items', 'i')
+            .where('o.paymentStatus = :ps', { ps: order_entity_1.PaymentStatus.PAID })
+            .select('i.sellerId', 'sellerId')
+            .addSelect('COALESCE(SUM(i.subtotal), 0)', 'revenue')
+            .addSelect('COUNT(DISTINCT o.id)', 'orderCount')
+            .groupBy('i.sellerId')
+            .orderBy('COALESCE(SUM(i.subtotal), 0)', 'DESC')
+            .limit(6)
+            .getRawMany();
+        const sellerIds = sellerRevRows.map(r => r.sellerId).filter(Boolean);
+        const sellerUsers = sellerIds.length
+            ? await this.userRepo
+                .createQueryBuilder('u')
+                .select(['u.id', 'u.firstName', 'u.lastName', 'u.storeName'])
+                .where('u.id IN (:...ids)', { ids: sellerIds })
+                .getMany()
+            : [];
+        const sellerMap = Object.fromEntries(sellerUsers.map(u => [u.id, u]));
+        const topSellers = sellerRevRows.map(r => {
+            const u = sellerMap[r.sellerId];
+            return {
+                id: r.sellerId,
+                name: u?.storeName || (u ? `${u.firstName} ${u.lastName}` : r.sellerId?.slice(0, 8)),
+                revenue: Number(r.revenue),
+                orderCount: Number(r.orderCount),
+            };
+        });
+        const [periodRevenue, periodOrders, periodUsers] = await Promise.all([
+            this.payRepo.createQueryBuilder('p')
+                .where('p.status = :s AND p.createdAt >= :from', { s: payment_entity_1.TxStatus.SUCCESS, from })
+                .select('COALESCE(SUM(p.amount), 0)', 'total').getRawOne().then(r => Number(r?.total || 0)),
+            this.orderRepo.createQueryBuilder('o')
+                .where('o.createdAt >= :from', { from }).getCount(),
+            this.userRepo.createQueryBuilder('u')
+                .where('u.createdAt >= :from', { from }).getCount(),
+        ]);
+        return {
+            revenueByDay,
+            ordersByDay,
+            usersByDay,
+            ordersByStatus,
+            categoryBreakdown,
+            topSellers,
+            summary: { periodRevenue, periodOrders, periodUsers, days },
+        };
     }
     async globalSearch(query) {
         const q = `%${query}%`;

@@ -19,6 +19,7 @@ const swagger_1 = require("@nestjs/swagger");
 const logistics_service_1 = require("./logistics.service");
 const logistics_dto_1 = require("./logistics.dto");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
 const decorators_1 = require("../../common/decorators");
 const logistics_entity_1 = require("./logistics.entity");
 let LogisticsController = class LogisticsController {
@@ -75,6 +76,12 @@ let LogisticsController = class LogisticsController {
     }
     assignAgent(uid, shipmentId, dto) {
         return this.svc.assignAgent(uid, shipmentId, dto);
+    }
+    adminListProviders(p = 1, l = 20, status) {
+        return this.svc.adminListProviders(+p, +l, status);
+    }
+    adminUpdateProviderStatus(id, status, note) {
+        return this.svc.adminUpdateProviderStatus(id, status, note);
     }
 };
 exports.LogisticsController = LogisticsController;
@@ -298,6 +305,34 @@ __decorate([
     __metadata("design:paramtypes", [String, String, logistics_dto_1.AssignAgentDto]),
     __metadata("design:returntype", void 0)
 ], LogisticsController.prototype, "assignAgent", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, common_1.Get)('admin/providers'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all logistics providers (admin)' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, String]),
+    __metadata("design:returntype", void 0)
+], LogisticsController.prototype, "adminListProviders", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, common_1.Patch)('admin/providers/:id/status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Approve / reject / suspend a logistics provider (admin)' }),
+    openapi.ApiResponse({ status: 200, type: require("./logistics.entity").LogisticsProvider }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('status')),
+    __param(2, (0, common_1.Body)('note')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], LogisticsController.prototype, "adminUpdateProviderStatus", null);
 exports.LogisticsController = LogisticsController = __decorate([
     (0, swagger_1.ApiTags)('Logistics'),
     (0, common_1.Controller)('logistics'),

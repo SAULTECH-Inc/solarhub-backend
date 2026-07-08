@@ -25,7 +25,7 @@ export declare class OrdersService {
     findById(id: string, userId?: string, role?: string): Promise<Order>;
     getUserOrders(buyerId: string, page: number, limit: number, status?: OrderStatus): Promise<import("../../common/utils/pagination.util").PaginatedResult<Order>>;
     getSellerOrders(sellerId: string, page: number, limit: number): Promise<import("../../common/utils/pagination.util").PaginatedResult<Order>>;
-    getAllOrders(page: number, limit: number, status?: string, search?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<Order>>;
+    getAllOrders(page: number, limit: number, status?: string, search?: string, paymentStatus?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<Order>>;
     advanceStatus(orderId: string, userId: string, role: string, note?: string): Promise<Order>;
     cancelOrder(orderId: string, userId: string, role: string, reason?: string): Promise<Order>;
     markPaid(orderId: string, reference: string, gateway: string): Promise<Order>;

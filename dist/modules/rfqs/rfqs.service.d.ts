@@ -10,4 +10,7 @@ export declare class RfqsService {
     acceptBid(userId: string, bidId: string): Promise<RfqBid>;
     getOpenRfqs(state?: string, city?: string, page?: number, limit?: number): Promise<import("../../common/utils/pagination.util").PaginatedResult<Rfq>>;
     submitBid(contractor: User, rfqId: string, dto: Partial<RfqBid>): Promise<RfqBid>;
+    adminListAll(page: number, limit: number, status?: string): Promise<import("../../common/utils/pagination.util").PaginatedResult<Rfq>>;
+    adminCancelRfq(id: string): Promise<Rfq>;
+    adminGetRfqBids(rfqId: string): Promise<RfqBid[]>;
 }

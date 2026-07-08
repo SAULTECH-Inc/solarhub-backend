@@ -18,7 +18,9 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const subscriptions_service_1 = require("./subscriptions.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
 const decorators_1 = require("../../common/decorators");
+const subscription_invoice_entity_1 = require("./subscription-invoice.entity");
 let SubscriptionsController = class SubscriptionsController {
     constructor(svc) {
         this.svc = svc;
@@ -40,6 +42,9 @@ let SubscriptionsController = class SubscriptionsController {
     }
     getInvoice(id, userId) {
         return this.svc.getInvoiceById(id, userId);
+    }
+    adminListInvoices(p = 1, l = 20, plan, status) {
+        return this.svc.adminListInvoices(+p, +l, plan, status);
     }
 };
 exports.SubscriptionsController = SubscriptionsController;
@@ -113,6 +118,21 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], SubscriptionsController.prototype, "getInvoice", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, common_1.Get)('admin/list'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all subscription invoices (admin)' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('plan')),
+    __param(3, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, String, String]),
+    __metadata("design:returntype", void 0)
+], SubscriptionsController.prototype, "adminListInvoices", null);
 exports.SubscriptionsController = SubscriptionsController = __decorate([
     (0, swagger_1.ApiTags)('Subscriptions'),
     (0, common_1.Controller)('subscriptions'),

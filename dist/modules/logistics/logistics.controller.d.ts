@@ -1,5 +1,6 @@
 import { LogisticsService } from './logistics.service';
 import { RegisterProviderDto, AddAgentDto, AssignShipmentDto, UpdateShipmentStatusDto, RejectShipmentDto, AssignAgentDto, QueryProvidersDto, QueryShipmentsDto } from './logistics.dto';
+import { ProviderStatus } from './logistics.entity';
 export declare class LogisticsController {
     private readonly svc;
     constructor(svc: LogisticsService);
@@ -35,4 +36,6 @@ export declare class LogisticsController {
     rejectShipment(uid: string, shipmentId: string, dto: RejectShipmentDto): Promise<import("./logistics.entity").ShipmentAssignment>;
     updateShipmentStatus(uid: string, shipmentId: string, dto: UpdateShipmentStatusDto): Promise<import("./logistics.entity").ShipmentAssignment>;
     assignAgent(uid: string, shipmentId: string, dto: AssignAgentDto): Promise<import("./logistics.entity").ShipmentAssignment>;
+    adminListProviders(p?: number, l?: number, status?: ProviderStatus): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("./logistics.entity").LogisticsProvider>>;
+    adminUpdateProviderStatus(id: string, status: ProviderStatus, note?: string): Promise<import("./logistics.entity").LogisticsProvider>;
 }

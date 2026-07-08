@@ -35,6 +35,7 @@ export declare class PaymentsService {
     refund(paymentId: string, amount?: number, reason?: string): Promise<Payment>;
     private handleRefundWebhook;
     getPaymentByOrder(orderId: string): Promise<Payment[]>;
+    listAll(page: number, limit: number, status?: string, provider?: string, search?: string): Promise<import("@common/utils/pagination.util").PaginatedResult<Payment>>;
     getStats(): Promise<{
         total: number;
         success: number;

@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const rfqs_service_1 = require("./rfqs.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
 const decorators_1 = require("../../common/decorators");
 const user_entity_1 = require("../users/user.entity");
 let RfqsController = class RfqsController {
@@ -38,6 +39,15 @@ let RfqsController = class RfqsController {
     }
     submitBid(user, rfqId, dto) {
         return this.svc.submitBid(user, rfqId, dto);
+    }
+    adminListAll(p = 1, l = 20, status) {
+        return this.svc.adminListAll(+p, +l, status);
+    }
+    adminCancel(id) {
+        return this.svc.adminCancelRfq(id);
+    }
+    adminGetBids(rfqId) {
+        return this.svc.adminGetRfqBids(rfqId);
     }
 };
 exports.RfqsController = RfqsController;
@@ -95,6 +105,41 @@ __decorate([
     __metadata("design:paramtypes", [user_entity_1.User, String, Object]),
     __metadata("design:returntype", void 0)
 ], RfqsController.prototype, "submitBid", null);
+__decorate([
+    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Get)('admin/all'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all RFQs (admin)' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, String]),
+    __metadata("design:returntype", void 0)
+], RfqsController.prototype, "adminListAll", null);
+__decorate([
+    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Patch)('admin/:id/cancel'),
+    (0, swagger_1.ApiOperation)({ summary: 'Cancel an RFQ (admin)' }),
+    openapi.ApiResponse({ status: 200, type: require("./rfq.entity").Rfq }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], RfqsController.prototype, "adminCancel", null);
+__decorate([
+    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Get)('admin/:id/bids'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all bids for an RFQ (admin)' }),
+    openapi.ApiResponse({ status: 200, type: [require("./rfq.entity").RfqBid] }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], RfqsController.prototype, "adminGetBids", null);
 exports.RfqsController = RfqsController = __decorate([
     (0, swagger_1.ApiTags)('RFQs'),
     (0, swagger_1.ApiBearerAuth)('JWT'),

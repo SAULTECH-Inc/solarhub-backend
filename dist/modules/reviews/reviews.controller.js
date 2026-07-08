@@ -18,10 +18,14 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const reviews_service_1 = require("./reviews.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
 const decorators_1 = require("../../common/decorators");
 let ReviewsController = class ReviewsController {
     constructor(svc) {
         this.svc = svc;
+    }
+    getAllReviews(p = 1, l = 30, rating, search) {
+        return this.svc.getAllReviews(+p, +l, rating ? +rating : undefined, search);
     }
     getProductReviews(pid, p = 1, l = 20) {
         return this.svc.getProductReviews(pid, +p, +l);
@@ -40,6 +44,20 @@ let ReviewsController = class ReviewsController {
     }
 };
 exports.ReviewsController = ReviewsController;
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, swagger_1.ApiBearerAuth)('JWT'),
+    (0, decorators_1.Roles)('admin'),
+    (0, common_1.Get)('product/all'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('rating')),
+    __param(3, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, String, String]),
+    __metadata("design:returntype", void 0)
+], ReviewsController.prototype, "getAllReviews", null);
 __decorate([
     (0, decorators_1.Public)(),
     (0, common_1.Get)('product/:productId'),

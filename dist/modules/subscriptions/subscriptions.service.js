@@ -193,6 +193,20 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
             throw new common_1.ForbiddenException('Not your invoice');
         return invoice;
     }
+    async adminListInvoices(page, limit, plan, status) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const where = {};
+        if (plan)
+            where.plan = plan;
+        if (status)
+            where.status = status;
+        const [data, total] = await this.invoiceRepo.findAndCount({
+            where,
+            order: { createdAt: 'DESC' },
+            skip, take,
+        });
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
     async verifyPaystackReference(reference) {
         const secretKey = this.cfg.get('paystack.secretKey');
         const res = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {

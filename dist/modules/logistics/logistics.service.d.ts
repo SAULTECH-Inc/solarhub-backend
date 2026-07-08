@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { LogisticsProvider, LogisticsAgent, ShipmentAssignment, ShipmentStatus } from './logistics.entity';
+import { LogisticsProvider, LogisticsAgent, ShipmentAssignment, ProviderStatus, ShipmentStatus } from './logistics.entity';
 import { RegisterProviderDto, AddAgentDto, AssignShipmentDto, UpdateShipmentStatusDto, RejectShipmentDto, AssignAgentDto, QueryProvidersDto } from './logistics.dto';
 import { User } from '../users/user.entity';
 import { DeliveryTracking } from '../delivery/delivery.entity';
@@ -48,5 +48,7 @@ export declare class LogisticsService {
     private resolveAgentOwnership;
     private resolveShipmentOwnership;
     private validateStatusTransition;
+    adminListProviders(page: number, limit: number, status?: ProviderStatus): Promise<import("@common/utils/pagination.util").PaginatedResult<LogisticsProvider>>;
+    adminUpdateProviderStatus(id: string, status: ProviderStatus, note?: string): Promise<LogisticsProvider>;
     private defaultTrackingDescription;
 }

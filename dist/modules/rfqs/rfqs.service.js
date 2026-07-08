@@ -92,6 +92,30 @@ let RfqsService = class RfqsService {
         await this.rfqRepo.increment({ id: rfqId }, 'bidCount', 1);
         return bid;
     }
+    async adminListAll(page, limit, status) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const where = status ? { status: status } : {};
+        const [data, total] = await this.rfqRepo.findAndCount({
+            where,
+            relations: ['bids'],
+            order: { createdAt: 'DESC' },
+            skip, take,
+        });
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
+    async adminCancelRfq(id) {
+        const rfq = await this.rfqRepo.findOne({ where: { id } });
+        if (!rfq)
+            throw new common_1.NotFoundException('RFQ not found');
+        rfq.status = rfq_entity_1.RfqStatus.CANCELED;
+        return this.rfqRepo.save(rfq);
+    }
+    async adminGetRfqBids(rfqId) {
+        return this.bidRepo.find({
+            where: { rfqId },
+            order: { createdAt: 'ASC' },
+        });
+    }
 };
 exports.RfqsService = RfqsService;
 exports.RfqsService = RfqsService = __decorate([

@@ -35,6 +35,10 @@ export declare class Payment {
     refundAmount: number;
     refundedAt: Date;
     refundReason: string;
+    isDisputed: boolean;
+    disputeId: string;
+    riskScore: number;
+    chargebackAt: Date;
     createdAt: Date;
     updatedAt: Date;
 }

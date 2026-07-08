@@ -1,4 +1,5 @@
 import { SubscriptionsService } from './subscriptions.service';
+import { InvoiceStatus } from './subscription-invoice.entity';
 export declare class SubscriptionsController {
     private readonly svc;
     constructor(svc: SubscriptionsService);
@@ -30,4 +31,5 @@ export declare class SubscriptionsController {
         pages: number;
     }>;
     getInvoice(id: string, userId: string): Promise<import("./subscription-invoice.entity").SubscriptionInvoice>;
+    adminListInvoices(p?: number, l?: number, plan?: string, status?: InvoiceStatus): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("./subscription-invoice.entity").SubscriptionInvoice>>;
 }

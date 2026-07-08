@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { SubscriptionInvoice } from './subscription-invoice.entity';
+import { SubscriptionInvoice, InvoiceStatus } from './subscription-invoice.entity';
 import { User } from '../users/user.entity';
 import { RedisService } from '../redis/redis.service';
 export declare const SUBSCRIPTION_PLANS: Record<string, {
@@ -50,5 +50,6 @@ export declare class SubscriptionsService {
         pages: number;
     }>;
     getInvoiceById(id: string, userId: string): Promise<SubscriptionInvoice>;
+    adminListInvoices(page: number, limit: number, plan?: string, status?: InvoiceStatus): Promise<import("@common/utils/pagination.util").PaginatedResult<SubscriptionInvoice>>;
     verifyPaystackReference(reference: string): Promise<SubscriptionInvoice>;
 }

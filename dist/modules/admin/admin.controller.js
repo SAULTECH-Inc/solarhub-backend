@@ -37,6 +37,10 @@ let AdminController = class AdminController {
     getDashboard() { return this.svc.getDashboard(); }
     getHealth() { return this.svc.getSystemHealth(); }
     globalSearch(q) { return this.svc.globalSearch(q); }
+    getAnalytics(days = 30) {
+        return this.svc.getAnalytics(+days);
+    }
+    getPaymentDetail(id) { return this.svc.getPaymentDetail(id); }
     listUsers(p = 1, l = 20, role, status, search) {
         return this.users.listAll(+p, +l, { role, status, search });
     }
@@ -47,6 +51,9 @@ let AdminController = class AdminController {
         return this.svc.verifySeller(id, approved);
     }
     userStats() { return this.users.getStats(); }
+    getUserDetail(id) {
+        return this.svc.getUserDetail(id);
+    }
     getPendingProducts() { return this.svc.getPendingProducts(); }
     moderate(id, action, reason) {
         return this.svc.moderateProduct(id, action, reason);
@@ -55,13 +62,28 @@ let AdminController = class AdminController {
         return this.svc.setFeatured(id, featured, badge);
     }
     productStats() { return this.products.getStats(); }
-    listOrders(p = 1, l = 20, status, search) {
-        return this.orders.getAllOrders(+p, +l, status, search);
+    listOrders(p = 1, l = 20, status, search, paymentStatus) {
+        return this.orders.getAllOrders(+p, +l, status, search, paymentStatus);
     }
     advanceOrder(id, note) {
         return this.orders.advanceStatus(id, 'admin', 'admin', note);
     }
     orderStats() { return this.orders.getOrderStats(); }
+    getOrderDetail(id) {
+        return this.svc.getOrderDetail(id);
+    }
+    getFlaggedUsers(p = 1, l = 20) {
+        return this.svc.getFlaggedUsers(+p, +l);
+    }
+    flagUser(id, reason) {
+        return this.svc.flagUser(id, reason);
+    }
+    unflagUser(id) {
+        return this.svc.unflagUser(id);
+    }
+    getRiskyPayments(p = 1, l = 20) {
+        return this.svc.getRiskyPayments(+p, +l);
+    }
 };
 exports.AdminController = AdminController;
 __decorate([
@@ -102,6 +124,23 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "globalSearch", null);
 __decorate([
+    (0, common_1.Get)('analytics'),
+    (0, swagger_1.ApiOperation)({ summary: 'Platform analytics for N days' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getAnalytics", null);
+__decorate([
+    (0, common_1.Get)('payments/:id'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getPaymentDetail", null);
+__decorate([
     (0, common_1.Get)('users'),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Query)('page')),
@@ -138,6 +177,14 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "userStats", null);
+__decorate([
+    (0, common_1.Get)('users/:id'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getUserDetail", null);
 __decorate([
     (0, common_1.Get)('products/pending'),
     (0, swagger_1.ApiOperation)({ summary: 'Products awaiting approval' }),
@@ -182,8 +229,9 @@ __decorate([
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('status')),
     __param(3, (0, common_1.Query)('search')),
+    __param(4, (0, common_1.Query)('paymentStatus')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String, String]),
+    __metadata("design:paramtypes", [Object, Object, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "listOrders", null);
 __decorate([
@@ -202,6 +250,53 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "orderStats", null);
+__decorate([
+    (0, common_1.Get)('orders/:id'),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getOrderDetail", null);
+__decorate([
+    (0, common_1.Get)('fraud/flagged'),
+    (0, swagger_1.ApiOperation)({ summary: 'List flagged users' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getFlaggedUsers", null);
+__decorate([
+    (0, common_1.Patch)('fraud/flag/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Flag a user for fraud' }),
+    openapi.ApiResponse({ status: 200, type: require("../users/user.entity").User }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "flagUser", null);
+__decorate([
+    (0, common_1.Patch)('fraud/unflag/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Clear a fraud flag from a user' }),
+    openapi.ApiResponse({ status: 200, type: require("../users/user.entity").User }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "unflagUser", null);
+__decorate([
+    (0, common_1.Get)('fraud/payments'),
+    (0, swagger_1.ApiOperation)({ summary: 'List high-risk or disputed payments' }),
+    openapi.ApiResponse({ status: 200 }),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getRiskyPayments", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('Admin'),
     (0, swagger_1.ApiBearerAuth)('JWT'),

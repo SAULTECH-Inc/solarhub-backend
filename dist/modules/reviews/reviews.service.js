@@ -67,6 +67,28 @@ let ReviewsService = class ReviewsService {
     async markHelpful(reviewId) {
         await this.repo.increment({ id: reviewId }, 'helpfulCount', 1);
     }
+    async getAllReviews(page, limit, rating, search) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const qb = this.repo
+            .createQueryBuilder('r')
+            .leftJoinAndSelect('r.user', 'u')
+            .leftJoin('products', 'p', 'p.id = r."productId"')
+            .addSelect('p.name', 'productName');
+        if (rating)
+            qb.andWhere('r.rating = :rating', { rating });
+        if (search)
+            qb.andWhere('(u."firstName" ILIKE :q OR u."lastName" ILIKE :q OR p.name ILIKE :q)', { q: `%${search}%` });
+        const total = await qb.getCount();
+        const { entities, raw } = await qb
+            .orderBy('r.createdAt', 'DESC')
+            .skip(skip).take(take)
+            .getRawAndEntities();
+        const enriched = entities.map((r, i) => ({
+            ...r,
+            productName: raw[i]?.productName ?? null,
+        }));
+        return (0, pagination_util_1.paginate)(enriched, total, page, limit);
+    }
     async delete(reviewId, userId, role) {
         const review = await this.repo.findOne({ where: { id: reviewId } });
         if (!review)

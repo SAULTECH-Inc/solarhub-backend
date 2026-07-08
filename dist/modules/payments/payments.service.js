@@ -354,6 +354,19 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
     async getPaymentByOrder(orderId) {
         return this.repo.find({ where: { orderId }, order: { createdAt: 'DESC' } });
     }
+    async listAll(page, limit, status, provider, search) {
+        const { skip, take } = (0, pagination_util_1.paginationToSkipTake)(page, limit);
+        const qb = this.repo.createQueryBuilder('p');
+        if (status)
+            qb.andWhere('p.status = :status', { status });
+        if (provider)
+            qb.andWhere('p.provider = :provider', { provider });
+        if (search)
+            qb.andWhere('p.reference ILIKE :q', { q: `%${search}%` });
+        qb.orderBy('p.createdAt', 'DESC').skip(skip).take(take);
+        const [data, total] = await qb.getManyAndCount();
+        return (0, pagination_util_1.paginate)(data, total, page, limit);
+    }
     async getStats() {
         const [total, success, failed] = await Promise.all([
             this.repo.count(),

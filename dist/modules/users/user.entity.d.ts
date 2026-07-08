@@ -87,6 +87,11 @@ export declare class User {
     lockoutUntil: Date;
     passwordResetToken: string;
     passwordResetExpiry: Date;
+    isFlagged: boolean;
+    flaggedAt: Date;
+    flagReason: string;
+    chargebackCount: number;
+    riskScore: number;
     createdAt: Date;
     updatedAt: Date;
     hashPassword(): Promise<void>;

@@ -36,6 +36,7 @@ const rfqs_module_1 = require("./modules/rfqs/rfqs.module");
 const subscriptions_module_1 = require("./modules/subscriptions/subscriptions.module");
 const logistics_module_1 = require("./modules/logistics/logistics.module");
 const tasks_module_1 = require("./modules/tasks/tasks.module");
+const disputes_module_1 = require("./modules/disputes/disputes.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -67,7 +68,7 @@ exports.AppModule = AppModule = __decorate([
                     synchronize: cfg.get('database.sync', false),
                     logging: cfg.get('database.logging', false),
                     migrationsRun: false,
-                    ssl: cfg.get('app.nodeEnv') === 'production'
+                    ssl: cfg.get('database.host') !== 'localhost'
                         ? { rejectUnauthorized: false }
                         : false,
                     extra: { max: 20 },
@@ -80,6 +81,9 @@ exports.AppModule = AppModule = __decorate([
                         host: cfg.get('redis.host'),
                         port: cfg.get('redis.port'),
                         password: cfg.get('redis.password') || undefined,
+                        tls: { rejectUnauthorized: false },
+                        connectTimeout: 10000,
+                        keepAlive: 10000,
                     },
                     defaultJobOptions: {
                         attempts: 3,
@@ -120,6 +124,7 @@ exports.AppModule = AppModule = __decorate([
             subscriptions_module_1.SubscriptionsModule,
             logistics_module_1.LogisticsModule,
             tasks_module_1.TasksModule,
+            disputes_module_1.DisputesModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
