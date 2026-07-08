@@ -49,6 +49,20 @@ async function getApp() {
     const cfg = app.get(config_1.ConfigService);
     const prefix = cfg.get('app.apiPrefix', 'api/v1');
     const origins = cfg.get('app.allowedOrigins', []);
+    app.use((req, res, next) => {
+        if (req.method === 'OPTIONS') {
+            const reqOrigin = req.headers.origin || '';
+            const allowed = !origins.filter(Boolean).length || origins.includes(reqOrigin);
+            if (allowed && reqOrigin)
+                res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', '*');
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+            res.setHeader('Access-Control-Max-Age', '86400');
+            return res.status(204).end();
+        }
+        next();
+    });
     app.use((0, helmet_1.default)({
         crossOriginResourcePolicy: { policy: 'cross-origin' },
         contentSecurityPolicy: {

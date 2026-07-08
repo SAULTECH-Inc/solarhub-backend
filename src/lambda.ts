@@ -63,6 +63,21 @@ async function getApp(): Promise<NestExpressApplication> {
   const prefix  = cfg.get<string>('app.apiPrefix', 'api/v1');
   const origins = cfg.get<string[]>('app.allowedOrigins', []);
 
+  // Respond to all OPTIONS preflight requests immediately, before any routing.
+  app.use((req: any, res: any, next: () => void) => {
+    if (req.method === 'OPTIONS') {
+      const reqOrigin = req.headers.origin || '';
+      const allowed = !origins.filter(Boolean).length || origins.includes(reqOrigin);
+      if (allowed && reqOrigin) res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.status(204).end();
+    }
+    next();
+  });
+
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
