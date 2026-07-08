@@ -66,7 +66,7 @@ import { DisputesModule }      from '@modules/disputes/disputes.module';
         synchronize: cfg.get<boolean>('database.sync', false),
         logging:     cfg.get<boolean>('database.logging', false),
         migrationsRun: false,
-        ssl: (cfg.get('app.nodeEnv') === 'production' || cfg.get<boolean>('database.ssl'))
+        ssl: cfg.get('database.host') !== 'localhost'
           ? { rejectUnauthorized: false }
           : false,
         extra: { max: 20 },         // connection pool
