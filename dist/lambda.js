@@ -121,14 +121,13 @@ module.exports = async (req, res) => {
         const origin = req.headers?.origin || '';
         const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
         const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+        const reqHeaders = req.headers['access-control-request-headers'] || 'Content-Type,Authorization,Accept';
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With');
+        res.setHeader('Access-Control-Allow-Headers', reqHeaders);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Max-Age', '86400');
-        if (origin && allowed)
+        res.setHeader('Access-Control-Max-Age', '600');
+        if (origin && (allowed || !rawOrigins.length))
             res.setHeader('Access-Control-Allow-Origin', origin);
-        else if (!rawOrigins.length)
-            res.setHeader('Access-Control-Allow-Origin', '*');
         res.writeHead(204);
         res.end();
         return;

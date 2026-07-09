@@ -145,12 +145,13 @@ module.exports = async (req: IncomingMessage, res: ServerResponse) => {
     const origin = (req as any).headers?.origin || '';
     const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
     const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+    // Reflect back exactly what the browser is requesting so no header is ever rejected
+    const reqHeaders = (req as any).headers['access-control-request-headers'] || 'Content-Type,Authorization,Accept';
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With');
+    res.setHeader('Access-Control-Allow-Headers', reqHeaders);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    if (origin && allowed) res.setHeader('Access-Control-Allow-Origin', origin);
-    else if (!rawOrigins.length) res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Max-Age', '600'); // short TTL so stale caches expire quickly
+    if (origin && (allowed || !rawOrigins.length)) res.setHeader('Access-Control-Allow-Origin', origin);
     res.writeHead(204);
     res.end();
     return;
