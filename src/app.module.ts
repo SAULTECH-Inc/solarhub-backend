@@ -35,6 +35,8 @@ import { SubscriptionsModule } from '@modules/subscriptions/subscriptions.module
 import { LogisticsModule }     from '@modules/logistics/logistics.module';
 import { TasksModule }         from '@modules/tasks/tasks.module';
 import { DisputesModule }      from '@modules/disputes/disputes.module';
+import { EscrowModule }        from '@modules/escrow/escrow.module';
+import { PlatformSettingsModule } from '@modules/platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -135,6 +137,8 @@ import { DisputesModule }      from '@modules/disputes/disputes.module';
     LogisticsModule,
     TasksModule,
     DisputesModule,
+    EscrowModule,
+    PlatformSettingsModule,
   ],
   providers: [
     // Global rate-limit guard

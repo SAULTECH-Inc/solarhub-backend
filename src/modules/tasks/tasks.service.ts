@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
@@ -6,6 +6,7 @@ import { User, UserStatus } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RedisService } from '../redis/redis.service';
 import { generateOtp } from '../../common/utils/pagination.util';
+import { EscrowService } from '../escrow/escrow.service';
 
 const REMINDER_COOLDOWN_S = 48 * 60 * 60; // one reminder per 2 days per user
 const MIN_AGE_H = 24;   // only remind users who registered at least 24 h ago
@@ -19,6 +20,7 @@ export class TasksService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly notif: NotificationsService,
     private readonly redis: RedisService,
+    @Optional() private readonly escrow: EscrowService,
   ) {}
 
   // Runs at 10:00 AM daily (UTC). Won't fire on Vercel serverless;
@@ -68,5 +70,19 @@ export class TasksService {
 
     this.logger.log(`remindUnverifiedUsers done — reminded: ${reminded}, skipped: ${skipped}`);
     return { reminded, skipped };
+  }
+
+  // Runs daily at 02:00 UTC. On Vercel serverless, trigger via POST /tasks/cron.
+  @Cron('0 2 * * *')
+  async scheduledEscrowAutoRelease() {
+    this.logger.log('Scheduled: processAutoReleases starting');
+    await this.processEscrowAutoReleases();
+  }
+
+  async processEscrowAutoReleases(): Promise<{ released: number; errors: number }> {
+    if (!this.escrow) return { released: 0, errors: 0 };
+    const result = await this.escrow.processAutoReleases();
+    this.logger.log(`Auto-release done — released: ${result.released}, errors: ${result.errors}`);
+    return result;
   }
 }

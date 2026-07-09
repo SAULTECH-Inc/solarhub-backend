@@ -2,13 +2,15 @@ import { AdminService } from './admin.service';
 import { UsersService } from '../users/users.service';
 import { ProductsService } from '../products/products.service';
 import { OrdersService } from '../orders/orders.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { UserStatus } from '../users/user.entity';
 export declare class AdminController {
     private readonly svc;
     private readonly users;
     private readonly products;
     private readonly orders;
-    constructor(svc: AdminService, users: UsersService, products: ProductsService, orders: OrdersService);
+    private readonly platformSettings;
+    constructor(svc: AdminService, users: UsersService, products: ProductsService, orders: OrdersService, platformSettings: PlatformSettingsService);
     seedSuperAdmin(key: string, email: string, password?: string): Promise<{
         created: boolean;
         email: string;
@@ -179,6 +181,8 @@ export declare class AdminController {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    getSettings(): Promise<import("../platform-settings/platform-setting.entity").PlatformSetting[]>;
+    updateSetting(key: string, value: string): Promise<import("../platform-settings/platform-setting.entity").PlatformSetting>;
     getFlaggedUsers(p?: number, l?: number): Promise<import("../../common/utils/pagination.util").PaginatedResult<import("../users/user.entity").User>>;
     flagUser(id: string, reason: string): Promise<import("../users/user.entity").User>;
     unflagUser(id: string): Promise<import("../users/user.entity").User>;

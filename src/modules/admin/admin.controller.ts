@@ -7,6 +7,7 @@ import { AdminService } from './admin.service';
 import { UsersService } from '../users/users.service';
 import { ProductsService } from '../products/products.service';
 import { OrdersService } from '../orders/orders.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles, Public } from '../../common/decorators';
@@ -23,6 +24,7 @@ export class AdminController {
     private readonly users:    UsersService,
     private readonly products: ProductsService,
     private readonly orders:   OrdersService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   // ── Seed super-admin (public, key-protected) ──────────────
@@ -136,6 +138,20 @@ export class AdminController {
   @Get('orders/:id')
   getOrderDetail(@Param('id') id: string) {
     return this.svc.getOrderDetail(id);
+  }
+
+  // ── Platform Settings ─────────────────────────────────────
+  @Get('settings')
+  @ApiOperation({ summary: 'List all platform settings (feature flags, config)' })
+  getSettings() { return this.platformSettings.getAll(); }
+
+  @Patch('settings')
+  @ApiOperation({ summary: 'Update a platform setting — e.g. toggle escrow on/off' })
+  updateSetting(
+    @Body('key') key: string,
+    @Body('value') value: string,
+  ) {
+    return this.platformSettings.set(key, value);
   }
 
   // ── Fraud & Trust ─────────────────────────────────────────

@@ -17,6 +17,7 @@ const orders_module_1 = require("../orders/orders.module");
 const payments_module_1 = require("../payments/payments.module");
 const reviews_module_1 = require("../reviews/reviews.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const platform_settings_module_1 = require("../platform-settings/platform-settings.module");
 const user_entity_1 = require("../users/user.entity");
 const product_entity_1 = require("../products/product.entity");
 const order_entity_1 = require("../orders/order.entity");
@@ -34,6 +35,7 @@ exports.AdminModule = AdminModule = __decorate([
             payments_module_1.PaymentsModule,
             reviews_module_1.ReviewsModule,
             notifications_module_1.NotificationsModule,
+            platform_settings_module_1.PlatformSettingsModule,
         ],
         controllers: [admin_controller_1.AdminController],
         providers: [admin_service_1.AdminService],

@@ -37,6 +37,8 @@ const subscriptions_module_1 = require("./modules/subscriptions/subscriptions.mo
 const logistics_module_1 = require("./modules/logistics/logistics.module");
 const tasks_module_1 = require("./modules/tasks/tasks.module");
 const disputes_module_1 = require("./modules/disputes/disputes.module");
+const escrow_module_1 = require("./modules/escrow/escrow.module");
+const platform_settings_module_1 = require("./modules/platform-settings/platform-settings.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -129,6 +131,8 @@ exports.AppModule = AppModule = __decorate([
             logistics_module_1.LogisticsModule,
             tasks_module_1.TasksModule,
             disputes_module_1.DisputesModule,
+            escrow_module_1.EscrowModule,
+            platform_settings_module_1.PlatformSettingsModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },

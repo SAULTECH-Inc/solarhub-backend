@@ -9,4 +9,8 @@ export declare class TasksController {
         reminded: number;
         skipped: number;
     }>;
+    cronEscrowAutoRelease(auth: string): Promise<{
+        released: number;
+        errors: number;
+    }>;
 }

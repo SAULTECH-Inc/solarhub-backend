@@ -30,4 +30,17 @@ export class TasksController {
     this.logger.log('Cron endpoint triggered: remind-unverified');
     return this.svc.remindUnverifiedUsers();
   }
+
+  @Public()
+  @Post('cron/escrow-auto-release')
+  @ApiOperation({ summary: 'Trigger escrow auto-release job (cron endpoint)' })
+  async cronEscrowAutoRelease(@Headers('authorization') auth: string) {
+    const secret = this.cfg.get<string>('app.cronSecret');
+    if (secret) {
+      const provided = auth?.replace(/^Bearer\s+/i, '');
+      if (provided !== secret) throw new UnauthorizedException('Invalid cron secret');
+    }
+    this.logger.log('Cron endpoint triggered: escrow-auto-release');
+    return this.svc.processEscrowAutoReleases();
+  }
 }

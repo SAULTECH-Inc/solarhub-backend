@@ -36,6 +36,16 @@ let TasksController = TasksController_1 = class TasksController {
         this.logger.log('Cron endpoint triggered: remind-unverified');
         return this.svc.remindUnverifiedUsers();
     }
+    async cronEscrowAutoRelease(auth) {
+        const secret = this.cfg.get('app.cronSecret');
+        if (secret) {
+            const provided = auth?.replace(/^Bearer\s+/i, '');
+            if (provided !== secret)
+                throw new common_1.UnauthorizedException('Invalid cron secret');
+        }
+        this.logger.log('Cron endpoint triggered: escrow-auto-release');
+        return this.svc.processEscrowAutoReleases();
+    }
 };
 exports.TasksController = TasksController;
 __decorate([
@@ -48,6 +58,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "cronRemindUnverified", null);
+__decorate([
+    (0, decorators_1.Public)(),
+    (0, common_1.Post)('cron/escrow-auto-release'),
+    (0, swagger_1.ApiOperation)({ summary: 'Trigger escrow auto-release job (cron endpoint)' }),
+    openapi.ApiResponse({ status: 201 }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "cronEscrowAutoRelease", null);
 exports.TasksController = TasksController = TasksController_1 = __decorate([
     (0, swagger_1.ApiTags)('Tasks'),
     (0, common_1.Controller)('tasks'),

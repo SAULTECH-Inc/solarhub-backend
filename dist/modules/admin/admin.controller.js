@@ -20,16 +20,18 @@ const admin_service_1 = require("./admin.service");
 const users_service_1 = require("../users/users.service");
 const products_service_1 = require("../products/products.service");
 const orders_service_1 = require("../orders/orders.service");
+const platform_settings_service_1 = require("../platform-settings/platform-settings.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const decorators_1 = require("../../common/decorators");
 const user_entity_1 = require("../users/user.entity");
 let AdminController = class AdminController {
-    constructor(svc, users, products, orders) {
+    constructor(svc, users, products, orders, platformSettings) {
         this.svc = svc;
         this.users = users;
         this.products = products;
         this.orders = orders;
+        this.platformSettings = platformSettings;
     }
     seedSuperAdmin(key, email, password) {
         return this.svc.seedSuperAdmin(key, email, password);
@@ -71,6 +73,10 @@ let AdminController = class AdminController {
     orderStats() { return this.orders.getOrderStats(); }
     getOrderDetail(id) {
         return this.svc.getOrderDetail(id);
+    }
+    getSettings() { return this.platformSettings.getAll(); }
+    updateSetting(key, value) {
+        return this.platformSettings.set(key, value);
     }
     getFlaggedUsers(p = 1, l = 20) {
         return this.svc.getFlaggedUsers(+p, +l);
@@ -259,6 +265,24 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getOrderDetail", null);
 __decorate([
+    (0, common_1.Get)('settings'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all platform settings (feature flags, config)' }),
+    openapi.ApiResponse({ status: 200, type: [require("../platform-settings/platform-setting.entity").PlatformSetting] }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getSettings", null);
+__decorate([
+    (0, common_1.Patch)('settings'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update a platform setting — e.g. toggle escrow on/off' }),
+    openapi.ApiResponse({ status: 200, type: require("../platform-settings/platform-setting.entity").PlatformSetting }),
+    __param(0, (0, common_1.Body)('key')),
+    __param(1, (0, common_1.Body)('value')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateSetting", null);
+__decorate([
     (0, common_1.Get)('fraud/flagged'),
     (0, swagger_1.ApiOperation)({ summary: 'List flagged users' }),
     openapi.ApiResponse({ status: 200 }),
@@ -306,6 +330,7 @@ exports.AdminController = AdminController = __decorate([
     __metadata("design:paramtypes", [admin_service_1.AdminService,
         users_service_1.UsersService,
         products_service_1.ProductsService,
-        orders_service_1.OrdersService])
+        orders_service_1.OrdersService,
+        platform_settings_service_1.PlatformSettingsService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

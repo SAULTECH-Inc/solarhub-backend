@@ -14,6 +14,7 @@ const notifications_module_1 = require("../notifications/notifications.module");
 const redis_module_1 = require("../redis/redis.module");
 const tasks_service_1 = require("./tasks.service");
 const tasks_controller_1 = require("./tasks.controller");
+const escrow_module_1 = require("../escrow/escrow.module");
 let TasksModule = class TasksModule {
 };
 exports.TasksModule = TasksModule;
@@ -23,6 +24,7 @@ exports.TasksModule = TasksModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
             notifications_module_1.NotificationsModule,
             redis_module_1.RedisModule,
+            escrow_module_1.EscrowModule,
         ],
         providers: [tasks_service_1.TasksService],
         controllers: [tasks_controller_1.TasksController],

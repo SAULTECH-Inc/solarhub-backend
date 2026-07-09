@@ -22,14 +22,16 @@ const user_entity_1 = require("../users/user.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
 const redis_service_1 = require("../redis/redis.service");
 const pagination_util_1 = require("../../common/utils/pagination.util");
+const escrow_service_1 = require("../escrow/escrow.service");
 const REMINDER_COOLDOWN_S = 48 * 60 * 60;
 const MIN_AGE_H = 24;
 const MAX_AGE_D = 7;
 let TasksService = TasksService_1 = class TasksService {
-    constructor(userRepo, notif, redis) {
+    constructor(userRepo, notif, redis, escrow) {
         this.userRepo = userRepo;
         this.notif = notif;
         this.redis = redis;
+        this.escrow = escrow;
         this.logger = new common_1.Logger(TasksService_1.name);
     }
     async scheduledReminder() {
@@ -74,6 +76,17 @@ let TasksService = TasksService_1 = class TasksService {
         this.logger.log(`remindUnverifiedUsers done — reminded: ${reminded}, skipped: ${skipped}`);
         return { reminded, skipped };
     }
+    async scheduledEscrowAutoRelease() {
+        this.logger.log('Scheduled: processAutoReleases starting');
+        await this.processEscrowAutoReleases();
+    }
+    async processEscrowAutoReleases() {
+        if (!this.escrow)
+            return { released: 0, errors: 0 };
+        const result = await this.escrow.processAutoReleases();
+        this.logger.log(`Auto-release done — released: ${result.released}, errors: ${result.errors}`);
+        return result;
+    }
 };
 exports.TasksService = TasksService;
 __decorate([
@@ -82,11 +95,19 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], TasksService.prototype, "scheduledReminder", null);
+__decorate([
+    (0, schedule_1.Cron)('0 2 * * *'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TasksService.prototype, "scheduledEscrowAutoRelease", null);
 exports.TasksService = TasksService = TasksService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(3, (0, common_1.Optional)()),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         notifications_service_1.NotificationsService,
-        redis_service_1.RedisService])
+        redis_service_1.RedisService,
+        escrow_service_1.EscrowService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

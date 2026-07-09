@@ -9,6 +9,7 @@ import { OrdersModule } from '../orders/orders.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { ReviewsModule } from '../reviews/reviews.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { User } from '../users/user.entity';
 import { Product } from '../products/product.entity';
 import { Order } from '../orders/order.entity';
@@ -23,6 +24,7 @@ import { Payment } from '../payments/payment.entity';
     PaymentsModule,
     ReviewsModule,
     NotificationsModule,
+    PlatformSettingsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],
