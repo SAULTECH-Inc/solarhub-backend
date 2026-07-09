@@ -1,15 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dist/lambda.js",
-      "use": "@vercel/node",
-      "config": {
-        "memory": 1024,
-        "maxDuration": 60,
-        "includeFiles": "dist/**"
-      }
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": "dist/**"
     }
-  ],
-  "routes": [{ "src": "/(.*)", "dest": "/dist/lambda.js" }]
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
 }
