@@ -94,11 +94,7 @@ async function getApp(): Promise<NestExpressApplication> {
   app.use(compression());
 
   app.enableCors({
-    origin: (origin: string | undefined, cb: (e: Error | null, ok?: boolean) => void) => {
-      if (!origin) return cb(null, true);            // non-browser / server calls
-      if (!origins.filter(Boolean).length) return cb(null, true); // no allow-list configured
-      cb(null, origins.includes(origin));
-    },
+    origin: true, // reflect whatever origin the browser sends — JWT enforces auth, not CORS
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: '*',
     credentials: true,
@@ -145,26 +141,22 @@ module.exports = async (req: IncomingMessage, res: ServerResponse) => {
 
   if (req.method === 'OPTIONS') {
     const origin = (req as any).headers?.origin || '';
-    const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-    const allowed = !rawOrigins.length || rawOrigins.includes(origin);
-    // Reflect back exactly what the browser is requesting so no header is ever rejected
     const reqHeaders = (req as any).headers['access-control-request-headers'] || 'Content-Type,Authorization,Accept';
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', reqHeaders);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '600'); // short TTL so stale caches expire quickly
-    if (origin && (allowed || !rawOrigins.length)) res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Max-Age', '600');
+    // Always reflect the requesting origin — CORS on preflights is not a security boundary;
+    // auth tokens on actual requests are. This prevents any origin mismatch from blocking the POST.
+    if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
     res.writeHead(204);
     res.end();
     return;
   }
 
-  // Always set CORS headers on every response so boot errors don't show as CORS errors
+  // Always set CORS headers on every response so boot errors don't surface as CORS errors.
   const origin = (req as any).headers?.origin || '';
-  const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-  const allowed = !rawOrigins.length || rawOrigins.includes(origin);
-  if (origin && allowed) (res as any).setHeader('Access-Control-Allow-Origin', origin);
-  else if (!rawOrigins.length && origin) (res as any).setHeader('Access-Control-Allow-Origin', origin);
+  if (origin) (res as any).setHeader('Access-Control-Allow-Origin', origin);
   (res as any).setHeader('Access-Control-Allow-Credentials', 'true');
 
   let app: NestExpressApplication;

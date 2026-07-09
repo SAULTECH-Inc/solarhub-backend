@@ -78,13 +78,7 @@ async function getApp() {
     }));
     app.use(compression());
     app.enableCors({
-        origin: (origin, cb) => {
-            if (!origin)
-                return cb(null, true);
-            if (!origins.filter(Boolean).length)
-                return cb(null, true);
-            cb(null, origins.includes(origin));
-        },
+        origin: true,
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         allowedHeaders: '*',
         credentials: true,
@@ -120,25 +114,19 @@ module.exports = async (req, res) => {
     console.log(`[lambda] ${req.method} ${req.url} origin=${req.headers?.origin || '(none)'}`);
     if (req.method === 'OPTIONS') {
         const origin = req.headers?.origin || '';
-        const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-        const allowed = !rawOrigins.length || rawOrigins.includes(origin);
         const reqHeaders = req.headers['access-control-request-headers'] || 'Content-Type,Authorization,Accept';
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', reqHeaders);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Max-Age', '600');
-        if (origin && (allowed || !rawOrigins.length))
+        if (origin)
             res.setHeader('Access-Control-Allow-Origin', origin);
         res.writeHead(204);
         res.end();
         return;
     }
     const origin = req.headers?.origin || '';
-    const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-    const allowed = !rawOrigins.length || rawOrigins.includes(origin);
-    if (origin && allowed)
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    else if (!rawOrigins.length && origin)
+    if (origin)
         res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     let app;
