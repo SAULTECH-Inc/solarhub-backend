@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const platform_setting_entity_1 = require("./platform-setting.entity");
 const platform_settings_service_1 = require("./platform-settings.service");
+const public_controller_1 = require("./public.controller");
 let PlatformSettingsModule = class PlatformSettingsModule {
 };
 exports.PlatformSettingsModule = PlatformSettingsModule;
@@ -18,6 +19,7 @@ exports.PlatformSettingsModule = PlatformSettingsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([platform_setting_entity_1.PlatformSetting])],
         providers: [platform_settings_service_1.PlatformSettingsService],
+        controllers: [public_controller_1.PublicController],
         exports: [platform_settings_service_1.PlatformSettingsService],
     })
 ], PlatformSettingsModule);
