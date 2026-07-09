@@ -1,12 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "rm -rf dist && npm run build && mkdir -p public",
-  "functions": {
-    "api/index.js": {
-      "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "dist/**"
+  "builds": [
+    {
+      "src": "dist/lambda.js",
+      "use": "@vercel/node",
+      "config": {
+        "memory": 1024,
+        "maxDuration": 60,
+        "includeFiles": "dist/**"
+      }
     }
-  },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "dist/lambda.js" }]
 }

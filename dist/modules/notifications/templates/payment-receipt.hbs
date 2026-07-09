@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body{margin:0;padding:0;background:#06080d;font-family:Arial,sans-serif;color:#e2e8f0}
+    .wrap{max-width:540px;margin:40px auto;background:#111827;border:1px solid #1e293b;border-radius:12px;overflow:hidden}
+    .header{padding:24px 32px;background:linear-gradient(135deg,#111827,#162032);border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}
+    .logo{font-size:19px;font-weight:700;color:#f59e0b}
+    .receipt-badge{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10b981;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+    .body{padding:32px}
+    h2{font-size:20px;font-weight:700;margin:0 0 8px}
+    p{color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 14px}
+    .amount-hero{text-align:center;padding:24px;background:#162032;border:1px solid #253044;border-radius:10px;margin:20px 0}
+    .amount-label{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin-bottom:8px}
+    .amount{font-size:40px;font-weight:700;color:#f59e0b;letter-spacing:-1px}
+    .amount-currency{font-size:16px;font-weight:400;color:#94a3b8;margin-left:6px}
+    .details{margin:20px 0}
+    .detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1e293b;font-size:13.5px}
+    .detail-row:last-child{border-bottom:none}
+    .dk{color:#94a3b8}.dv{color:#e2e8f0;font-weight:500}
+    .footer{padding:18px 32px;border-top:1px solid #1e293b;text-align:center;font-size:12px;color:#475569}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="logo">☀️ Solar Maket</div>
+      <div class="receipt-badge">Payment Receipt</div>
+    </div>
+    <div class="body">
+      <h2>Payment Confirmed! ✅</h2>
+      <p>Hi {{firstName}}, your payment has been received successfully.</p>
+
+      <div class="amount-hero">
+        <div class="amount-label">Amount Paid</div>
+        <div class="amount">{{payment.formattedAmount}}<span class="amount-currency">{{payment.currency}}</span></div>
+      </div>
+
+      <div class="details">
+        <div class="detail-row"><span class="dk">Order Number</span><span class="dv">{{payment.orderNumber}}</span></div>
+        <div class="detail-row"><span class="dk">Payment Reference</span><span class="dv">{{payment.reference}}</span></div>
+        <div class="detail-row"><span class="dk">Payment Method</span><span class="dv">{{payment.method}}</span></div>
+        <div class="detail-row"><span class="dk">Date & Time</span><span class="dv">{{payment.paidAt}}</span></div>
+        <div class="detail-row"><span class="dk">Payment Gateway</span><span class="dv">{{payment.gateway}}</span></div>
+        <div class="detail-row"><span class="dk">Status</span><span class="dv" style="color:#10b981">✅ Successful</span></div>
+      </div>
+
+      <p style="font-size:13px;margin-top:16px">Keep this receipt for your records. Your order is now being processed and you'll receive shipping updates shortly.</p>
+    </div>
+    <div class="footer">© {{year}} Solar Maket Nigeria Ltd · Payments secured by Paystack / Stripe</div>
+  </div>
+</body>
+</html>

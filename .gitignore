@@ -1,5 +1,5 @@
 node_modules
-dist
+# dist is committed so Vercel can deploy without a build step
 build
 coverage
 .DS_Store

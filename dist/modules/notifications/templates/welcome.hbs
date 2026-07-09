@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Welcome to Solar Maket!</title>
+  <style>
+    body{margin:0;padding:0;background:#06080d;font-family:'DM Sans',Arial,sans-serif;color:#e2e8f0}
+    .wrap{max-width:560px;margin:40px auto;background:#111827;border:1px solid #1e293b;border-radius:12px;overflow:hidden}
+    .hero{background:linear-gradient(135deg,#111827 0%,#162032 100%);padding:48px 32px;text-align:center;border-bottom:2px solid rgba(245,158,11,0.3)}
+    .sun{font-size:64px;display:block;margin-bottom:12px}
+    .logo{font-size:26px;font-weight:700;color:#f59e0b;letter-spacing:1px}
+    .body{padding:36px}
+    h2{font-size:22px;font-weight:700;color:#e2e8f0;margin:0 0 12px}
+    p{color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 16px}
+    .features{display:grid;gap:14px;margin:24px 0}
+    .feat{background:#162032;border:1px solid #253044;border-radius:8px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+    .feat-icon{font-size:22px;flex-shrink:0;line-height:1}
+    .feat-title{font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:3px}
+    .feat-desc{font-size:12.5px;color:#94a3b8;line-height:1.5}
+    .cta{display:block;background:#f59e0b;color:#000;text-align:center;padding:15px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;margin:24px 0}
+    .footer{padding:20px 32px;border-top:1px solid #1e293b;text-align:center;font-size:12px;color:#475569}
+    .footer a{color:#f59e0b;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <span class="sun">☀️</span>
+      <div class="logo">Solar Maket Nigeria</div>
+    </div>
+    <div class="body">
+      <h2>Welcome aboard, {{firstName}}! 🎉</h2>
+      <p>You've joined Nigeria's smartest solar marketplace. Whether you're buying, selling, or just exploring — we've got everything you need to go solar.</p>
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">🛒</div>
+          <div>
+            <div class="feat-title">Browse 1,200+ Solar Products</div>
+            <div class="feat-desc">Panels, batteries, inverters, controllers — from verified sellers nationwide.</div>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">⚡</div>
+          <div>
+            <div class="feat-title">AI Solar Advisor</div>
+            <div class="feat-desc">Tell us your appliances, get 3 complete system designs with ₦ cost estimates.</div>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🏪</div>
+          <div>
+            <div class="feat-title">Sell Your Products</div>
+            <div class="feat-desc">AI-powered spec extraction from product labels. Reach thousands of buyers.</div>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">💬</div>
+          <div>
+            <div class="feat-title">AI + Human Support</div>
+            <div class="feat-desc">Expert solar help available instantly — AI first, escalate to a human anytime.</div>
+          </div>
+        </div>
+      </div>
+      <a href="{{frontendUrl}}" class="cta">Start Exploring Solar Maket →</a>
+      <p style="font-size:13px">Questions? Just reply to this email or chat with us live on the platform.</p>
+    </div>
+    <div class="footer">
+      © {{year}} Solar Maket Nigeria Ltd · <a href="{{frontendUrl}}/unsubscribe">Unsubscribe</a>
+    </div>
+  </div>
+</body>
+</html>
