@@ -141,6 +141,8 @@ async function getApp(): Promise<NestExpressApplication> {
 // Handle OPTIONS at the handler level — before NestJS even boots on cold starts.
 // This prevents the browser from seeing a CORS failure during the first cold-start request.
 module.exports = async (req: IncomingMessage, res: ServerResponse) => {
+  console.log(`[lambda] ${req.method} ${(req as any).url} origin=${(req as any).headers?.origin || '(none)'}`);
+
   if (req.method === 'OPTIONS') {
     const origin = (req as any).headers?.origin || '';
     const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
@@ -165,7 +167,15 @@ module.exports = async (req: IncomingMessage, res: ServerResponse) => {
   else if (!rawOrigins.length && origin) (res as any).setHeader('Access-Control-Allow-Origin', origin);
   (res as any).setHeader('Access-Control-Allow-Credentials', 'true');
 
-  const app = await getApp();
+  let app: NestExpressApplication;
+  try {
+    app = await getApp();
+  } catch (err) {
+    console.error('[lambda] getApp() failed:', err);
+    (res as any).writeHead(500, { 'Content-Type': 'application/json' });
+    (res as any).end(JSON.stringify({ message: 'Internal server error during boot' }));
+    return;
+  }
   const expressApp = app.getHttpAdapter().getInstance() as (
     req: IncomingMessage,
     res: ServerResponse,

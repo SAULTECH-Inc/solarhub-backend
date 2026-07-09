@@ -117,6 +117,7 @@ async function getApp() {
     return app;
 }
 module.exports = async (req, res) => {
+    console.log(`[lambda] ${req.method} ${req.url} origin=${req.headers?.origin || '(none)'}`);
     if (req.method === 'OPTIONS') {
         const origin = req.headers?.origin || '';
         const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
@@ -140,7 +141,16 @@ module.exports = async (req, res) => {
     else if (!rawOrigins.length && origin)
         res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    const app = await getApp();
+    let app;
+    try {
+        app = await getApp();
+    }
+    catch (err) {
+        console.error('[lambda] getApp() failed:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Internal server error during boot' }));
+        return;
+    }
     const expressApp = app.getHttpAdapter().getInstance();
     expressApp(req, res);
 };
