@@ -138,7 +138,32 @@ async function getApp(): Promise<NestExpressApplication> {
   return app;
 }
 
+// Handle OPTIONS at the handler level — before NestJS even boots on cold starts.
+// This prevents the browser from seeing a CORS failure during the first cold-start request.
 module.exports = async (req: IncomingMessage, res: ServerResponse) => {
+  if (req.method === 'OPTIONS') {
+    const origin = (req as any).headers?.origin || '';
+    const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+    const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    if (origin && allowed) res.setHeader('Access-Control-Allow-Origin', origin);
+    else if (!rawOrigins.length) res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Always set CORS headers on every response so boot errors don't show as CORS errors
+  const origin = (req as any).headers?.origin || '';
+  const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+  const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+  if (origin && allowed) (res as any).setHeader('Access-Control-Allow-Origin', origin);
+  else if (!rawOrigins.length && origin) (res as any).setHeader('Access-Control-Allow-Origin', origin);
+  (res as any).setHeader('Access-Control-Allow-Credentials', 'true');
+
   const app = await getApp();
   const expressApp = app.getHttpAdapter().getInstance() as (
     req: IncomingMessage,

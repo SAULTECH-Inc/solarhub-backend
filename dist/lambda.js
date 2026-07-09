@@ -117,6 +117,30 @@ async function getApp() {
     return app;
 }
 module.exports = async (req, res) => {
+    if (req.method === 'OPTIONS') {
+        const origin = req.headers?.origin || '';
+        const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+        const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Max-Age', '86400');
+        if (origin && allowed)
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        else if (!rawOrigins.length)
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+    const origin = req.headers?.origin || '';
+    const rawOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+    const allowed = !rawOrigins.length || rawOrigins.includes(origin);
+    if (origin && allowed)
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    else if (!rawOrigins.length && origin)
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     const app = await getApp();
     const expressApp = app.getHttpAdapter().getInstance();
     expressApp(req, res);
