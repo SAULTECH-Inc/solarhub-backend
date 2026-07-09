@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build && mkdir -p public",
   "functions": {
     "api/index.js": {
       "memory": 1024,
