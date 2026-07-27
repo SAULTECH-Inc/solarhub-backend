@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RfqsService } from './rfqs.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../../common/decorators';
+import { JwtAuthGuard }  from '../../common/guards/jwt-auth.guard';
+import { RolesGuard }    from '../../common/guards/roles.guard';
+import { CurrentUser, Roles } from '../../common/decorators';
 import { User } from '../users/user.entity';
 
 @ApiTags('RFQs')
@@ -40,5 +41,31 @@ export class RfqsController {
   @ApiOperation({ summary: 'Submit a bid to an RFQ (Contractor)' })
   submitBid(@CurrentUser() user: User, @Param('id') rfqId: string, @Body() dto: any) {
     return this.svc.submitBid(user, rfqId, dto);
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @Get('admin/all')
+  @ApiOperation({ summary: 'List all RFQs (admin)' })
+  adminListAll(@Query('page') p = 1, @Query('limit') l = 20, @Query('status') status?: string) {
+    return this.svc.adminListAll(+p, +l, status);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @Patch('admin/:id/cancel')
+  @ApiOperation({ summary: 'Cancel an RFQ (admin)' })
+  adminCancel(@Param('id') id: string) {
+    return this.svc.adminCancelRfq(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @Get('admin/:id/bids')
+  @ApiOperation({ summary: 'Get all bids for an RFQ (admin)' })
+  adminGetBids(@Param('id') rfqId: string) {
+    return this.svc.adminGetRfqBids(rfqId);
   }
 }

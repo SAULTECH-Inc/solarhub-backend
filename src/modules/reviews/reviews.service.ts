@@ -73,6 +73,34 @@ export class ReviewsService {
     await this.repo.increment({ id: reviewId }, 'helpfulCount', 1);
   }
 
+  async getAllReviews(page: number, limit: number, rating?: number, search?: string) {
+    const { skip, take } = paginationToSkipTake(page, limit);
+    const qb = this.repo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.user', 'u')
+      .leftJoin('products', 'p', 'p.id = r."productId"')
+      .addSelect('p.name', 'productName');
+
+    if (rating) qb.andWhere('r.rating = :rating', { rating });
+    if (search) qb.andWhere(
+      '(u."firstName" ILIKE :q OR u."lastName" ILIKE :q OR p.name ILIKE :q)',
+      { q: `%${search}%` },
+    );
+
+    const total = await qb.getCount();
+    const { entities, raw } = await qb
+      .orderBy('r.createdAt', 'DESC')
+      .skip(skip).take(take)
+      .getRawAndEntities();
+
+    const enriched = entities.map((r, i) => ({
+      ...r,
+      productName: raw[i]?.productName ?? null,
+    }));
+
+    return paginate(enriched, total, page, limit);
+  }
+
   async delete(reviewId: string, userId: string, role: string): Promise<void> {
     const review = await this.repo.findOne({ where: { id: reviewId } });
     if (!review) throw new NotFoundException('Review not found');

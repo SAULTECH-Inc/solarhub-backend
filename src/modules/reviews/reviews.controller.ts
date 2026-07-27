@@ -5,12 +5,25 @@ import {
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser, Public } from '../../common/decorators';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser, Public, Roles } from '../../common/decorators';
 
 @ApiTags('Reviews')
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly svc: ReviewsService) {}
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT')
+  @Roles('admin')
+  @Get('product/all')
+  getAllReviews(
+    @Query('page') p = 1, @Query('limit') l = 30,
+    @Query('rating') rating?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.svc.getAllReviews(+p, +l, rating ? +rating : undefined, search);
+  }
 
   @Public()
   @Get('product/:productId')

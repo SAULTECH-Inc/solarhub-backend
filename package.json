@@ -1,12 +1,13 @@
 {
   "name": "solarhub-backend",
   "version": "1.0.0",
-  "description": "SolarHub Nigeria — NestJS API Backend",
-  "author": "SolarHub Team",
+  "description": "Solar Maket Nigeria — NestJS API Backend",
+  "author": "Solar Maket Team",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "vercel-build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -49,6 +50,7 @@
     "compression": "^1.7.4",
     "date-fns": "^4.1.0",
     "express-rate-limit": "^7.4.1",
+    "firebase-admin": "^14.1.0",
     "handlebars": "^4.7.8",
     "helmet": "^8.0.0",
     "ioredis": "^5.4.1",

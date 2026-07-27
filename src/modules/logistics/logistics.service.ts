@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { paginate, paginationToSkipTake } from '@common/utils/pagination.util';
 import {
   LogisticsProvider, LogisticsAgent, ShipmentAssignment,
   ProviderType, ProviderStatus, ShipmentStatus,
@@ -520,6 +521,27 @@ export class LogisticsService {
         `Cannot transition from "${current}" to "${next}" — status can only move forward`,
       );
     }
+  }
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+
+  async adminListProviders(page: number, limit: number, status?: ProviderStatus) {
+    const { skip, take } = paginationToSkipTake(page, limit);
+    const where = status ? { status } : {};
+    const [data, total] = await this.providerRepo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip, take,
+    });
+    return paginate(data, total, page, limit);
+  }
+
+  async adminUpdateProviderStatus(id: string, status: ProviderStatus, note?: string): Promise<LogisticsProvider> {
+    const provider = await this.providerRepo.findOne({ where: { id } });
+    if (!provider) throw new NotFoundException('Provider not found');
+    provider.status = status;
+    if (status === ProviderStatus.ACTIVE) provider.isVerified = true;
+    return this.providerRepo.save(provider);
   }
 
   private defaultTrackingDescription(status: ShipmentStatus): string {

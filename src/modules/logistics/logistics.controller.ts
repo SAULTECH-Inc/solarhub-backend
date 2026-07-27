@@ -13,9 +13,10 @@ import {
   UpdateShipmentStatusDto, RejectShipmentDto,
   AssignAgentDto, QueryProvidersDto, QueryShipmentsDto,
 } from './logistics.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser, Public } from '../../common/decorators';
-import { ShipmentStatus } from './logistics.entity';
+import { JwtAuthGuard }  from '../../common/guards/jwt-auth.guard';
+import { RolesGuard }    from '../../common/guards/roles.guard';
+import { CurrentUser, Public, Roles } from '../../common/decorators';
+import { ShipmentStatus, ProviderStatus } from './logistics.entity';
 
 @ApiTags('Logistics')
 @Controller('logistics')
@@ -219,5 +220,33 @@ export class LogisticsController {
     @Body() dto: AssignAgentDto,
   ) {
     return this.svc.assignAgent(uid, shipmentId, dto);
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth('JWT')
+  @Get('admin/providers')
+  @ApiOperation({ summary: 'List all logistics providers (admin)' })
+  adminListProviders(
+    @Query('page')   p = 1,
+    @Query('limit')  l = 20,
+    @Query('status') status?: ProviderStatus,
+  ) {
+    return this.svc.adminListProviders(+p, +l, status);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth('JWT')
+  @Patch('admin/providers/:id/status')
+  @ApiOperation({ summary: 'Approve / reject / suspend a logistics provider (admin)' })
+  adminUpdateProviderStatus(
+    @Param('id') id: string,
+    @Body('status') status: ProviderStatus,
+    @Body('note')   note?: string,
+  ) {
+    return this.svc.adminUpdateProviderStatus(id, status, note);
   }
 }

@@ -60,6 +60,19 @@ export class Payment {
   @Column({ nullable: true, length: 500 })
   refundReason: string;
 
+  // ── Dispute / Fraud ────────────────────────────────────────
+  @Column({ default: false })
+  isDisputed: boolean;
+
+  @Column({ nullable: true })
+  disputeId: string;
+
+  @Column({ type: 'int', default: 0 })
+  riskScore: number; // 0–100
+
+  @Column({ nullable: true })
+  chargebackAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

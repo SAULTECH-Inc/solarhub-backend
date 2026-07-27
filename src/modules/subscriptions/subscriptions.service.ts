@@ -10,7 +10,7 @@ import * as crypto from 'crypto';
 import { SubscriptionInvoice, InvoiceStatus } from './subscription-invoice.entity';
 import { User } from '../users/user.entity';
 import { RedisService } from '../redis/redis.service';
-import { toSubunit } from '@common/utils/pagination.util';
+import { toSubunit, paginate, paginationToSkipTake } from '@common/utils/pagination.util';
 
 export const SUBSCRIPTION_PLANS: Record<string, {
   name: string;
@@ -209,6 +209,21 @@ export class SubscriptionsService {
     if (!invoice) throw new NotFoundException('Invoice not found');
     if (invoice.userId !== userId) throw new ForbiddenException('Not your invoice');
     return invoice;
+  }
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+
+  async adminListInvoices(page: number, limit: number, plan?: string, status?: InvoiceStatus) {
+    const { skip, take } = paginationToSkipTake(page, limit);
+    const where: Record<string, any> = {};
+    if (plan)   where.plan   = plan;
+    if (status) where.status = status;
+    const [data, total] = await this.invoiceRepo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip, take,
+    });
+    return paginate(data, total, page, limit);
   }
 
   /** Called by verifyPaystack fallback (manual verify flow) */

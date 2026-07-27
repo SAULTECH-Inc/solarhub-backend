@@ -4,8 +4,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser, Public } from '../../common/decorators';
+import { JwtAuthGuard }  from '../../common/guards/jwt-auth.guard';
+import { RolesGuard }    from '../../common/guards/roles.guard';
+import { CurrentUser, Public, Roles } from '../../common/decorators';
+import { InvoiceStatus } from './subscription-invoice.entity';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -66,5 +68,21 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Get a single subscription invoice' })
   getInvoice(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.svc.getInvoiceById(id, userId);
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth('JWT')
+  @Get('admin/list')
+  @ApiOperation({ summary: 'List all subscription invoices (admin)' })
+  adminListInvoices(
+    @Query('page')   p = 1,
+    @Query('limit')  l = 20,
+    @Query('plan')   plan?: string,
+    @Query('status') status?: InvoiceStatus,
+  ) {
+    return this.svc.adminListInvoices(+p, +l, plan, status);
   }
 }

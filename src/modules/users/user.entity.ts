@@ -199,6 +199,22 @@ export class User {
   @Column({ nullable: true })
   passwordResetExpiry: Date;
 
+  // ── Fraud / Trust ──────────────────────────────────────────
+  @Column({ default: false })
+  isFlagged: boolean;
+
+  @Column({ nullable: true })
+  flaggedAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  flagReason: string;
+
+  @Column({ default: 0 })
+  chargebackCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  riskScore: number; // 0–100; elevated by automated checks
+
   @CreateDateColumn()
   createdAt: Date;
 

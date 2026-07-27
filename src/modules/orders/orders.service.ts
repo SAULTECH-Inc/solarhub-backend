@@ -162,10 +162,11 @@ export class OrdersService {
     return paginate(data, total, page, limit);
   }
 
-  async getAllOrders(page: number, limit: number, status?: string, search?: string) {
+  async getAllOrders(page: number, limit: number, status?: string, search?: string, paymentStatus?: string) {
     const qb = this.repo.createQueryBuilder('o')
       .leftJoinAndSelect('o.buyer', 'b');
-    if (status) qb.where('o.status = :status', { status });
+    if (status) qb.andWhere('o.status = :status', { status });
+    if (paymentStatus) qb.andWhere('o.paymentStatus = :ps', { ps: paymentStatus });
     if (search) qb.andWhere('o.orderNumber ILIKE :q', { q: `%${search}%` });
     const { skip, take } = paginationToSkipTake(page, limit);
     qb.skip(skip).take(take).orderBy('o.createdAt', 'DESC');
